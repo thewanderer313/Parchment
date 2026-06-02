@@ -1,8 +1,6 @@
 import { create } from "zustand";
 import { getDatabase } from "@/db/client";
-import type { ThemeSelection } from "@/theme/palette";
-
-const VALID_SELECTIONS: ThemeSelection[] = ["system", "light", "dark"];
+import { THEME_SELECTIONS, type ThemeSelection } from "@/theme/palette";
 
 type Status = "idle" | "loading" | "ready" | "error";
 
@@ -24,7 +22,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         "SELECT key, value FROM settings WHERE key = 'theme_mode';"
       );
       const stored = rows[0]?.value;
-      const mode: ThemeSelection = VALID_SELECTIONS.includes(stored as ThemeSelection)
+      const mode: ThemeSelection = THEME_SELECTIONS.includes(stored as ThemeSelection)
         ? (stored as ThemeSelection)
         : "system";
       set({ themeMode: mode, status: "ready" });

@@ -1,5 +1,7 @@
 export type ThemeMode = "light" | "dark";
-export type ThemeSelection = "system" | "light" | "dark";
+
+export const THEME_SELECTIONS = ["system", "light", "dark"] as const;
+export type ThemeSelection = (typeof THEME_SELECTIONS)[number];
 
 export interface ThemeColors {
   bgApp: string;
