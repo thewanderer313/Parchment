@@ -1,15 +1,17 @@
 import React from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useDecksStore } from "@/store/decksStore";
 import { useTheme } from "@/theme/ThemeProvider";
 import { EmptyDeckList } from "@/components/EmptyDeckList";
+import { DeckTile } from "@/components/DeckTile";
 import { FONT_SERIF } from "@/theme/fonts";
 
 export default function Home() {
   const { theme } = useTheme();
   const decks = useDecksStore((s) => s.decks);
+  const router = useRouter();
 
   return (
     <SafeAreaView
@@ -30,7 +32,7 @@ export default function Home() {
           accessibilityRole="button"
           accessibilityLabel="Create new deck"
           style={[styles.plus, { backgroundColor: theme.colors.accentPrimary }]}
-          onPress={() => { /* deck creation wired up in Plan 2 */ }}
+          onPress={() => router.push("/deck/new")}
         >
           <Text style={[styles.plusGlyph, { color: theme.colors.bgCard }]}>+</Text>
         </Pressable>
@@ -39,11 +41,23 @@ export default function Home() {
       {decks.length === 0 ? (
         <EmptyDeckList />
       ) : (
-        <View style={styles.placeholder}>
-          <Text style={{ color: theme.colors.textBody, fontFamily: FONT_SERIF, fontStyle: "italic" }}>
-            Deck grid arrives in Plan 2.
-          </Text>
-        </View>
+        <FlatList
+          data={decks}
+          keyExtractor={(d) => d.id}
+          numColumns={2}
+          columnWrapperStyle={styles.row}
+          contentContainerStyle={styles.list}
+          renderItem={({ item }) => (
+            <View style={styles.tileWrap}>
+              <DeckTile
+                deck={item}
+                cardCount={0}
+                onPress={() => router.push(`/deck/${item.id}`)}
+                onLongPress={() => { /* long-press menu added in Task 11 */ }}
+              />
+            </View>
+          )}
+        />
       )}
     </SafeAreaView>
   );
@@ -79,5 +93,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   plusGlyph: { fontSize: 24, lineHeight: 26, fontWeight: "300" },
-  placeholder: { flex: 1, alignItems: "center", justifyContent: "center" },
+  list: { paddingHorizontal: 16, paddingBottom: 24 },
+  row: { gap: 12, marginBottom: 12 },
+  tileWrap: { flex: 1 },
 });
