@@ -23,7 +23,11 @@ export async function runMigrations(db: DbLike): Promise<void> {
   const current = await getUserVersion(db);
   const pending = migrations.filter((m) => m.version > current);
   for (const m of pending) {
-    await db.execAsync(m.sql);
-    await db.execAsync(`PRAGMA user_version = ${m.version};`);
+    await db.execAsync(
+      `BEGIN TRANSACTION;
+${m.sql}
+PRAGMA user_version = ${m.version};
+COMMIT;`
+    );
   }
 }

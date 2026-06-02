@@ -36,10 +36,10 @@ describe("runMigrations", () => {
   it("runs every migration on a fresh database", async () => {
     const db = makeFakeDb();
     await runMigrations(db as any);
-    expect(db.executed.some((s) => s.includes("CREATE TABLE decks"))).toBe(true);
-    expect(db.executed.some((s) => s.includes("CREATE TABLE cards"))).toBe(true);
-    expect(db.executed.some((s) => s.includes("CREATE TABLE settings"))).toBe(true);
-    expect(db.executed.some((s) => /user_version = \d+/.test(s))).toBe(true);
+    expect(db.executed.some((s) => /\bCREATE\s+TABLE\s+decks\b/i.test(s))).toBe(true);
+    expect(db.executed.some((s) => /\bCREATE\s+TABLE\s+cards\b/i.test(s))).toBe(true);
+    expect(db.executed.some((s) => /\bCREATE\s+TABLE\s+settings\b/i.test(s))).toBe(true);
+    expect(db.executed.some((s) => /\bPRAGMA\s+user_version\s*=\s*\d+/i.test(s))).toBe(true);
   });
 
   it("is idempotent — running twice on an already-current DB executes no schema statements", async () => {
