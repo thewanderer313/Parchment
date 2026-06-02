@@ -59,4 +59,23 @@ describe("DeckTile", () => {
     );
     expect(screen.getByText("📁")).toBeOnTheScreen();
   });
+
+  it("renders a cover Image when deck.coverImage is set", () => {
+    const deck = makeDeck({ coverImage: "file:///doc/images/cover_abc.jpg" });
+    render(
+      <ThemeProvider mode="light">
+        <DeckTile deck={deck} cardCount={0} onPress={() => {}} onLongPress={() => {}} />
+      </ThemeProvider>
+    );
+    expect(screen.getByTestId("deck-cover-image")).toBeOnTheScreen();
+  });
+
+  it("omits the cover Image when deck.coverImage is null", () => {
+    render(
+      <ThemeProvider mode="light">
+        <DeckTile deck={makeDeck()} cardCount={0} onPress={() => {}} onLongPress={() => {}} />
+      </ThemeProvider>
+    );
+    expect(screen.queryByTestId("deck-cover-image")).toBeNull();
+  });
 });

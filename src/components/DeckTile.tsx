@@ -29,7 +29,12 @@ export function DeckTile({ deck, cardCount, onPress, onLongPress }: Props) {
       style={[styles.tile, { backgroundColor: theme.colors.bgCard }]}
     >
       {hasCover && (
-        <Image source={{ uri: deck.coverImage as string }} style={styles.cover} resizeMode="cover" />
+        <Image
+          testID="deck-cover-image"
+          source={{ uri: deck.coverImage as string }}
+          style={styles.cover}
+          resizeMode="cover"
+        />
       )}
       <View style={[styles.body, hasCover && styles.bodyWithCover]}>
         <Text style={[styles.emoji, { color: theme.colors.textPrimary }]}>
