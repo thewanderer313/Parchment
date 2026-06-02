@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
 import { useDecksStore } from "@/store/decksStore";
+import { useCardsStore } from "@/store/cardsStore";
 import { useTheme } from "@/theme/ThemeProvider";
 import { EmptyDeckList } from "@/components/EmptyDeckList";
 import { DeckTile } from "@/components/DeckTile";
@@ -51,6 +52,7 @@ function confirmDelete(deckName: string, onConfirm: () => void) {
 export default function Home() {
   const { theme } = useTheme();
   const decks = useDecksStore((s) => s.decks);
+  const counts = useCardsStore((s) => s.counts);
   const router = useRouter();
 
   return (
@@ -91,10 +93,8 @@ export default function Home() {
             <View style={styles.tileWrap}>
               <DeckTile
                 deck={item}
-                cardCount={0}
-                // /deck/[id] index route is owned by Plan 02b (Deck Detail).
-                // Cast unblocks the type-check until that route file exists.
-                onPress={() => router.push(`/deck/${item.id}` as never)}
+                cardCount={counts[item.id] ?? 0}
+                onPress={() => router.push({ pathname: "/deck/[id]", params: { id: item.id } } as never)}
                 onLongPress={() => {
                   showDeckMenu(item.name, (choice) => {
                     if (choice === "edit") router.push({ pathname: "/deck/[id]/edit", params: { id: item.id } });

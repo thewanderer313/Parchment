@@ -16,6 +16,7 @@ import { lightTheme, darkTheme, type Theme } from "@/theme/palette";
 import { FONT_SERIF } from "@/theme/fonts";
 import { useSettingsStore } from "@/store/settingsStore";
 import { useDecksStore } from "@/store/decksStore";
+import { useCardsStore } from "@/store/cardsStore";
 import { getDatabase } from "@/db/client";
 
 type BootStatus = "loading" | "ready" | "error";
@@ -88,6 +89,7 @@ export default function RootLayout() {
         await getDatabase();
         await useSettingsStore.getState().load();
         await useDecksStore.getState().load();
+        await useCardsStore.getState().loadCounts();
         if (!cancelled) setStatus("ready");
       } catch (e) {
         console.warn("Parchment hydrate failed:", e);

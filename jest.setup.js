@@ -9,3 +9,15 @@ jest.mock("expo-crypto", () => {
     randomUUID: require("crypto").randomUUID,
   };
 });
+
+// react-native-marked depends on native rendering primitives that don't
+// load in Jest. Replace it with a plain Text renderer so MarkdownText's
+// own tests focus on the wrapper's behavior, not the library's internals.
+jest.mock("react-native-marked", () => {
+  const React = require("react");
+  const { Text } = require("react-native");
+  return {
+    __esModule: true,
+    default: ({ value }) => React.createElement(Text, null, value),
+  };
+});
