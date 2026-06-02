@@ -174,8 +174,27 @@ describe("decksStore", () => {
     expect(fakeDb.ran.filter((r) => /^UPDATE decks SET sort_order/i.test(r.sql)).length).toBe(3);
   });
 
+  it("reorder() wraps its UPDATEs in withTransactionAsync", async () => {
+    await useDecksStore.getState().create({ name: "A", emoji: null, description: null, coverImage: null });
+    await useDecksStore.getState().create({ name: "B", emoji: null, description: null, coverImage: null });
+    const spy = jest.spyOn(fakeDb, "withTransactionAsync");
+    const ids = useDecksStore.getState().decks.map((d) => d.id);
+    await useDecksStore.getState().reorder([ids[1], ids[0]]);
+    expect(spy).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
+  });
+
   it("reorder() rejects when the id list length doesn't match the deck count", async () => {
     await useDecksStore.getState().create({ name: "A", emoji: null, description: null, coverImage: null });
     await expect(useDecksStore.getState().reorder([])).rejects.toThrow(/order length/i);
+  });
+
+  it("reorder() rejects when an id in the list is unknown", async () => {
+    await useDecksStore.getState().create({ name: "A", emoji: null, description: null, coverImage: null });
+    await expect(
+      useDecksStore.getState().reorder(["does-not-exist"])
+    ).rejects.toThrow(/unknown id/i);
+    // No UPDATE should have hit the DB because validation happens before the transaction
+    expect(fakeDb.ran.filter((r) => /^UPDATE/i.test(r.sql)).length).toBe(0);
   });
 });

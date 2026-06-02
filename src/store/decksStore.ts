@@ -140,14 +140,22 @@ export const useDecksStore = createStore<DecksState>((set, get) => ({
     if (orderedIds.length !== current.length) {
       throw new Error(`reorder: order length ${orderedIds.length} != deck count ${current.length}`);
     }
+    const byId = new Map(current.map((d) => [d.id, d]));
+    for (const id of orderedIds) {
+      if (!byId.has(id)) throw new Error(`reorder: unknown id ${id}`);
+    }
     const db = asRunnable(await getDatabase());
     const now = Date.now();
-    const byId = new Map(current.map((d) => [d.id, d]));
-    const reordered: Deck[] = orderedIds.map((id, idx) => {
-      const deck = byId.get(id);
-      if (!deck) throw new Error(`reorder: unknown id ${id}`);
-      return { ...deck, sortOrder: idx, updatedAt: now };
-    });
+    const reordered: Deck[] = orderedIds.map((id, idx) => ({
+      ...(byId.get(id) as Deck),
+      sortOrder: idx,
+      updatedAt: now,
+    }));
+    // Errors from the loop propagate to the caller as plain rejections —
+    // reorder is invoked by user-action UI (drag-drop), not bootstrap, so
+    // we deliberately do NOT mirror load()'s status:"error" pattern here.
+    // The withTransactionAsync wrapper guarantees a mid-loop failure rolls
+    // back so the DB never lands in a half-reordered state.
     await db.withTransactionAsync(async () => {
       for (const d of reordered) {
         await db.runAsync(
