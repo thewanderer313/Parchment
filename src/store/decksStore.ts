@@ -49,6 +49,7 @@ interface DecksState {
   create: (input: DeckInput) => Promise<Deck>;
   update: (id: string, patch: DeckUpdate) => Promise<void>;
   delete: (id: string) => Promise<void>;
+  reorder: (orderedIds: string[]) => Promise<void>;
 }
 
 function rowToDeck(r: DeckRow): Deck {
@@ -68,6 +69,7 @@ function rowToDeck(r: DeckRow): Deck {
 interface RunnableDb {
   getAllAsync<T>(sql: string): Promise<T[]>;
   runAsync(sql: string, ...params: unknown[]): Promise<unknown>;
+  withTransactionAsync(cb: () => Promise<void>): Promise<void>;
 }
 
 function asRunnable(db: unknown): RunnableDb {
@@ -132,5 +134,28 @@ export const useDecksStore = createStore<DecksState>((set, get) => ({
     const db = asRunnable(await getDatabase());
     await db.runAsync("DELETE FROM decks WHERE id = ?;", id);
     set({ decks: get().decks.filter((d) => d.id !== id) });
+  },
+  async reorder(orderedIds) {
+    const current = get().decks;
+    if (orderedIds.length !== current.length) {
+      throw new Error(`reorder: order length ${orderedIds.length} != deck count ${current.length}`);
+    }
+    const db = asRunnable(await getDatabase());
+    const now = Date.now();
+    const byId = new Map(current.map((d) => [d.id, d]));
+    const reordered: Deck[] = orderedIds.map((id, idx) => {
+      const deck = byId.get(id);
+      if (!deck) throw new Error(`reorder: unknown id ${id}`);
+      return { ...deck, sortOrder: idx, updatedAt: now };
+    });
+    await db.withTransactionAsync(async () => {
+      for (const d of reordered) {
+        await db.runAsync(
+          "UPDATE decks SET sort_order = ?, updated_at = ? WHERE id = ?;",
+          d.sortOrder, d.updatedAt, d.id
+        );
+      }
+    });
+    set({ decks: reordered });
   },
 }));
