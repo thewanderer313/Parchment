@@ -8,24 +8,27 @@ import { Stack, useRouter } from "expo-router";
 import { useDecksStore } from "@/store/decksStore";
 import { useCardsStore } from "@/store/cardsStore";
 import { useTheme } from "@/theme/ThemeProvider";
+import { exportDeck } from "@/lib/export";
+import { writeAndShare } from "@/lib/share";
 import { EmptyDeckList } from "@/components/EmptyDeckList";
 import { DeckTile } from "@/components/DeckTile";
 import { FONT_SERIF } from "@/theme/fonts";
 
-type MenuChoice = "edit" | "delete" | "cancel";
+type MenuChoice = "edit" | "share" | "delete" | "cancel";
 
 function showDeckMenu(deckName: string, onChoose: (choice: MenuChoice) => void) {
   if (Platform.OS === "ios") {
     ActionSheetIOS.showActionSheetWithOptions(
       {
-        options: ["Cancel", "Edit", "Delete"],
-        destructiveButtonIndex: 2,
+        options: ["Cancel", "Edit", "Share", "Delete"],
+        destructiveButtonIndex: 3,
         cancelButtonIndex: 0,
         title: deckName,
       },
       (index) => {
         if (index === 1) onChoose("edit");
-        else if (index === 2) onChoose("delete");
+        else if (index === 2) onChoose("share");
+        else if (index === 3) onChoose("delete");
         else onChoose("cancel");
       }
     );
@@ -33,6 +36,7 @@ function showDeckMenu(deckName: string, onChoose: (choice: MenuChoice) => void) 
     Alert.alert(deckName, "", [
       { text: "Cancel", style: "cancel", onPress: () => onChoose("cancel") },
       { text: "Edit", onPress: () => onChoose("edit") },
+      { text: "Share", onPress: () => onChoose("share") },
       { text: "Delete", style: "destructive", onPress: () => onChoose("delete") },
     ]);
   }
@@ -70,14 +74,24 @@ export default function Home() {
               : `${decks.length} ${decks.length === 1 ? "collection" : "collections"}`}
           </Text>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Create new deck"
-          style={[styles.plus, { backgroundColor: theme.colors.accentPrimary }]}
-          onPress={() => router.push("/deck/new")}
-        >
-          <Text style={[styles.plusGlyph, { color: theme.colors.bgCard }]}>+</Text>
-        </Pressable>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+            style={styles.gearBtn}
+            onPress={() => router.push("/settings" as never)}
+          >
+            <Text style={[styles.gearGlyph, { color: theme.colors.textMuted }]}>⚙</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Create new deck"
+            style={[styles.plus, { backgroundColor: theme.colors.accentPrimary }]}
+            onPress={() => router.push("/deck/new")}
+          >
+            <Text style={[styles.plusGlyph, { color: theme.colors.bgCard }]}>+</Text>
+          </Pressable>
+        </View>
       </View>
 
       {decks.length === 0 ? (
@@ -98,6 +112,20 @@ export default function Home() {
                 onLongPress={() => {
                   showDeckMenu(item.name, (choice) => {
                     if (choice === "edit") router.push({ pathname: "/deck/[id]/edit", params: { id: item.id } });
+                    else if (choice === "share") {
+                      (async () => {
+                        try {
+                          const json = await exportDeck(
+                            item.id,
+                            useDecksStore.getState().decks,
+                            useCardsStore.getState().cardsByDeck
+                          );
+                          await writeAndShare(json, `parchment-deck-${item.name}`);
+                        } catch (e: unknown) {
+                          Alert.alert("Couldn't share deck", e instanceof Error ? e.message : String(e));
+                        }
+                      })();
+                    }
                     else if (choice === "delete") {
                       confirmDelete(item.name, () => {
                         useDecksStore.getState().delete(item.id).catch((e) => {
@@ -149,4 +177,6 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: 16, paddingBottom: 24 },
   row: { gap: 12, marginBottom: 12 },
   tileWrap: { flex: 1 },
+  gearBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  gearGlyph: { fontSize: 22 },
 });
