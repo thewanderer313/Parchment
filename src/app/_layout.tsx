@@ -3,8 +3,16 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { View, Text, ActivityIndicator, Pressable, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  useColorScheme,
+} from "react-native";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
+import { lightTheme, darkTheme, type Theme } from "@/theme/palette";
 import { FONT_SERIF } from "@/theme/fonts";
 import { useSettingsStore } from "@/store/settingsStore";
 import { useDecksStore } from "@/store/decksStore";
@@ -30,22 +38,37 @@ function ThemedStack() {
   );
 }
 
-function FullScreenStatus({ status, onRetry }: { status: BootStatus; onRetry: () => void }) {
+function FullScreenStatus({
+  status,
+  palette,
+  onRetry,
+}: {
+  status: BootStatus;
+  palette: Theme;
+  onRetry: () => void;
+}) {
+  const c = palette.colors;
   if (status === "loading") {
     return (
-      <View style={[styles.fullScreen, { backgroundColor: "#e8dec5" }]}>
-        <ActivityIndicator color="#2f4a35" />
+      <View style={[styles.fullScreen, { backgroundColor: c.bgApp }]}>
+        <ActivityIndicator color={c.accentPrimary} />
       </View>
     );
   }
   return (
-    <View style={[styles.fullScreen, { backgroundColor: "#e8dec5" }]}>
-      <Text style={styles.errorTitle}>Couldn't open the library</Text>
-      <Text style={styles.errorBody}>
+    <View style={[styles.fullScreen, { backgroundColor: c.bgApp }]}>
+      <Text style={[styles.errorTitle, { color: c.textPrimary }]}>
+        Couldn't open the library
+      </Text>
+      <Text style={[styles.errorBody, { color: c.textMuted }]}>
         Parchment couldn't initialize its database. This is unusual — try again.
       </Text>
-      <Pressable accessibilityRole="button" onPress={onRetry} style={styles.retry}>
-        <Text style={styles.retryLabel}>Try again</Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={onRetry}
+        style={[styles.retry, { backgroundColor: c.accentPrimary }]}
+      >
+        <Text style={[styles.retryLabel, { color: c.bgCard }]}>Try again</Text>
       </Pressable>
     </View>
   );
@@ -54,26 +77,35 @@ function FullScreenStatus({ status, onRetry }: { status: BootStatus; onRetry: ()
 export default function RootLayout() {
   const [status, setStatus] = useState<BootStatus>("loading");
   const themeMode = useSettingsStore((s) => s.themeMode);
+  const systemScheme = useColorScheme();
+  const bootPalette: Theme = systemScheme === "dark" ? darkTheme : lightTheme;
 
-  const hydrate = async () => {
+  const hydrate = () => {
     setStatus("loading");
-    try {
-      await getDatabase();
-      await useSettingsStore.getState().load();
-      await useDecksStore.getState().load();
-      setStatus("ready");
-    } catch (e) {
-      console.warn("Parchment hydrate failed:", e);
-      setStatus("error");
-    }
+    let cancelled = false;
+    (async () => {
+      try {
+        await getDatabase();
+        await useSettingsStore.getState().load();
+        await useDecksStore.getState().load();
+        if (!cancelled) setStatus("ready");
+      } catch (e) {
+        console.warn("Parchment hydrate failed:", e);
+        if (!cancelled) setStatus("error");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   };
 
   useEffect(() => {
-    hydrate();
+    const cancel = hydrate();
+    return cancel;
   }, []);
 
   if (status !== "ready") {
-    return <FullScreenStatus status={status} onRetry={hydrate} />;
+    return <FullScreenStatus status={status} palette={bootPalette} onRetry={hydrate} />;
   }
 
   return (
@@ -99,14 +131,12 @@ const styles = StyleSheet.create({
     fontFamily: FONT_SERIF,
     fontSize: 22,
     fontWeight: "700",
-    color: "#1f3024",
     textAlign: "center",
   },
   errorBody: {
     fontFamily: FONT_SERIF,
     fontSize: 14,
     fontStyle: "italic",
-    color: "#4a6b48",
     textAlign: "center",
     maxWidth: 320,
   },
@@ -114,8 +144,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingVertical: 10,
     paddingHorizontal: 22,
-    backgroundColor: "#2f4a35",
     borderRadius: 999,
   },
-  retryLabel: { color: "#f5ecd4", fontSize: 14, fontWeight: "600" },
+  retryLabel: { fontSize: 14, fontWeight: "600" },
 });
