@@ -9,9 +9,12 @@
     "expo-crypto": "~56.0.4",
     "expo-dev-client": "~56.0.18",
     "expo-device": "~56.0.4",
+    "expo-file-system": "~56.0.7",
     "expo-font": "~56.0.5",
     "expo-glass-effect": "~56.0.4",
     "expo-image": "~56.0.9",
+    "expo-image-manipulator": "~56.0.16",
+    "expo-image-picker": "~56.0.15",
     "expo-linking": "~56.0.13",
     "expo-router": "~56.2.8",
     "expo-splash-screen": "~56.0.10",
@@ -53,7 +56,9 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.js"
+    ],
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)"
     ]
