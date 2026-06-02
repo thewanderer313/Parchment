@@ -10,6 +10,9 @@ interface DeckRow {
 const fakeDb = {
   rows: [] as DeckRow[],
   ran: [] as { sql: string; params: unknown[] }[],
+  async withTransactionAsync(cb: () => Promise<void>) {
+    await cb();
+  },
   async getAllAsync<T>(_sql: string): Promise<T[]> {
     return this.rows.slice().sort((a, b) =>
       a.sort_order - b.sort_order || a.created_at - b.created_at
@@ -25,6 +28,12 @@ const fakeDb = {
         id, name, emoji, description, cover_image,
         shuffle_enabled: 0, sort_order, created_at, updated_at,
       });
+    } else if (/^UPDATE decks SET sort_order = \?/i.test(sql)) {
+      const [sort_order, updated_at, id] = params as [number, number, string];
+      const row = this.rows.find((r) => r.id === id);
+      if (!row) return;
+      row.sort_order = sort_order;
+      row.updated_at = updated_at;
     } else if (/^UPDATE decks SET/i.test(sql) && /WHERE id = \?/i.test(sql)) {
       const ps = params as unknown[];
       const id = ps[ps.length - 1] as string;
@@ -147,5 +156,26 @@ describe("decksStore", () => {
     await useDecksStore.getState().delete(id);
     expect(useDecksStore.getState().decks).toEqual([]);
     expect(fakeDb.ran.some((r) => /^DELETE FROM decks/i.test(r.sql))).toBe(true);
+  });
+
+  it("reorder() rewrites sort_order across all listed ids", async () => {
+    await useDecksStore.getState().create({ name: "A", emoji: null, description: null, coverImage: null });
+    await useDecksStore.getState().create({ name: "B", emoji: null, description: null, coverImage: null });
+    await useDecksStore.getState().create({ name: "C", emoji: null, description: null, coverImage: null });
+
+    const decks = useDecksStore.getState().decks;
+    const ids = decks.map((d) => d.id);
+    // current order corresponds to creation order; reorder to [3rd, 1st, 2nd]
+    await useDecksStore.getState().reorder([ids[2], ids[0], ids[1]]);
+
+    const reordered = useDecksStore.getState().decks;
+    expect(reordered.map((d) => d.id)).toEqual([ids[2], ids[0], ids[1]]);
+    expect(reordered.map((d) => d.sortOrder)).toEqual([0, 1, 2]);
+    expect(fakeDb.ran.filter((r) => /^UPDATE decks SET sort_order/i.test(r.sql)).length).toBe(3);
+  });
+
+  it("reorder() rejects when the id list length doesn't match the deck count", async () => {
+    await useDecksStore.getState().create({ name: "A", emoji: null, description: null, coverImage: null });
+    await expect(useDecksStore.getState().reorder([])).rejects.toThrow(/order length/i);
   });
 });
