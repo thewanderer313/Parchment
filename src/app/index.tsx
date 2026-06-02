@@ -32,7 +32,9 @@ export default function Home() {
           accessibilityRole="button"
           accessibilityLabel="Create new deck"
           style={[styles.plus, { backgroundColor: theme.colors.accentPrimary }]}
-          onPress={() => router.push("/deck/new")}
+          // typedRoutes can't see /deck/new until Task 9 lands; cast unblocks
+          // the type-check until the route file exists. Remove the cast then.
+          onPress={() => router.push("/deck/new" as never)}
         >
           <Text style={[styles.plusGlyph, { color: theme.colors.bgCard }]}>+</Text>
         </Pressable>
@@ -52,7 +54,9 @@ export default function Home() {
               <DeckTile
                 deck={item}
                 cardCount={0}
-                onPress={() => router.push(`/deck/${item.id}`)}
+                // /deck/[id] index route is owned by Plan 02b (Deck Detail).
+                // Cast unblocks the type-check until that route file exists.
+                onPress={() => router.push(`/deck/${item.id}` as never)}
                 onLongPress={() => { /* long-press menu added in Task 11 */ }}
               />
             </View>
