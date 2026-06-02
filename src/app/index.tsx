@@ -1,5 +1,8 @@
 import React from "react";
-import { View, Text, Pressable, StyleSheet, FlatList } from "react-native";
+import {
+  View, Text, Pressable, StyleSheet, FlatList,
+  Alert, Platform, ActionSheetIOS,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
 import { useDecksStore } from "@/store/decksStore";
@@ -7,6 +10,43 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { EmptyDeckList } from "@/components/EmptyDeckList";
 import { DeckTile } from "@/components/DeckTile";
 import { FONT_SERIF } from "@/theme/fonts";
+
+type MenuChoice = "edit" | "delete" | "cancel";
+
+function showDeckMenu(deckName: string, onChoose: (choice: MenuChoice) => void) {
+  if (Platform.OS === "ios") {
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: ["Cancel", "Edit", "Delete"],
+        destructiveButtonIndex: 2,
+        cancelButtonIndex: 0,
+        title: deckName,
+      },
+      (index) => {
+        if (index === 1) onChoose("edit");
+        else if (index === 2) onChoose("delete");
+        else onChoose("cancel");
+      }
+    );
+  } else {
+    Alert.alert(deckName, "", [
+      { text: "Cancel", style: "cancel", onPress: () => onChoose("cancel") },
+      { text: "Edit", onPress: () => onChoose("edit") },
+      { text: "Delete", style: "destructive", onPress: () => onChoose("delete") },
+    ]);
+  }
+}
+
+function confirmDelete(deckName: string, onConfirm: () => void) {
+  Alert.alert(
+    `Delete "${deckName}"?`,
+    "This will permanently remove the deck and all of its cards.",
+    [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: onConfirm },
+    ]
+  );
+}
 
 export default function Home() {
   const { theme } = useTheme();
@@ -55,7 +95,18 @@ export default function Home() {
                 // /deck/[id] index route is owned by Plan 02b (Deck Detail).
                 // Cast unblocks the type-check until that route file exists.
                 onPress={() => router.push(`/deck/${item.id}` as never)}
-                onLongPress={() => { /* long-press menu added in Task 11 */ }}
+                onLongPress={() => {
+                  showDeckMenu(item.name, (choice) => {
+                    if (choice === "edit") router.push({ pathname: "/deck/[id]/edit", params: { id: item.id } });
+                    else if (choice === "delete") {
+                      confirmDelete(item.name, () => {
+                        useDecksStore.getState().delete(item.id).catch((e) => {
+                          Alert.alert("Couldn't delete deck", e.message);
+                        });
+                      });
+                    }
+                  });
+                }}
               />
             </View>
           )}
