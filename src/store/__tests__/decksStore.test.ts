@@ -56,7 +56,11 @@ describe("decksStore", () => {
     mockedGetDatabase.mockReset();
     mockedGetDatabase.mockResolvedValue(fakeDb as never);
     mockedNewUuid.mockReset();
-    mockedNewUuid.mockReturnValueOnce("uuid-1").mockReturnValueOnce("uuid-2");
+    let uuidCounter = 0;
+    mockedNewUuid
+      .mockReturnValueOnce("uuid-1")
+      .mockReturnValueOnce("uuid-2")
+      .mockImplementation(() => `uuid-fallback-${++uuidCounter}`);
   });
 
   it("starts in idle state with no decks", () => {
