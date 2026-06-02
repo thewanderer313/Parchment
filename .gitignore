@@ -1,0 +1,33 @@
+# Brainstorming session artifacts
+.superpowers/
+
+# Node / Expo (anticipating implementation)
+node_modules/
+.expo/
+dist/
+web-build/
+*.tsbuildinfo
+
+# Native build artifacts
+android/app/build/
+android/build/
+android/.gradle/
+ios/build/
+ios/Pods/
+
+# EAS
+.eas/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
