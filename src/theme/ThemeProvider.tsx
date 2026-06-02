@@ -19,9 +19,21 @@ export function ThemeProvider({ children, mode }: Props) {
 
   const value = useMemo<ThemeContextValue>(() => {
     let resolved: Theme;
-    if (mode === "light") resolved = lightTheme;
-    else if (mode === "dark") resolved = darkTheme;
-    else resolved = systemScheme === "dark" ? darkTheme : lightTheme;
+    switch (mode) {
+      case "light":
+        resolved = lightTheme;
+        break;
+      case "dark":
+        resolved = darkTheme;
+        break;
+      case "system":
+        resolved = systemScheme === "dark" ? darkTheme : lightTheme;
+        break;
+      default: {
+        const _exhaustive: never = mode;
+        throw new Error(`Unknown theme mode: ${String(_exhaustive)}`);
+      }
+    }
     return { theme: resolved, selection: mode };
   }, [mode, systemScheme]);
 

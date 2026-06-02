@@ -4,6 +4,11 @@ import { render, screen } from "@testing-library/react-native";
 import { ThemeProvider, useTheme } from "../ThemeProvider";
 import { lightTheme, darkTheme } from "../palette";
 
+// We mock the internal path used by React Native's useColorScheme implementation
+// rather than the public "react-native" export. The public-export approach
+// (jest.requireActual("react-native") + spread) pulls in native bridges that
+// can be slow or flaky in Jest; the internal-path mock is the documented
+// pattern for unit tests that need to control useColorScheme's return value.
 jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
   __esModule: true,
   default: jest.fn(),
