@@ -8,9 +8,11 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { FONT_SERIF } from "@/theme/fonts";
+import { pickAndStoreImage } from "@/lib/image";
 
 export interface DeckEditorValues {
   name: string;
@@ -35,8 +37,9 @@ export function DeckEditor({ initial, onSubmit, onCancel }: Props) {
   const [name, setName] = useState(initial.name);
   const [emoji, setEmoji] = useState(initial.emoji ?? "");
   const [description, setDescription] = useState(initial.description ?? "");
-  const [coverImage] = useState<string | null>(initial.coverImage);
+  const [coverImage, setCoverImage] = useState<string | null>(initial.coverImage);
   const [showNameError, setShowNameError] = useState(false);
+  const [pickingCover, setPickingCover] = useState(false);
 
   const submit = () => {
     if (name.trim().length === 0) {
@@ -50,6 +53,16 @@ export function DeckEditor({ initial, onSubmit, onCancel }: Props) {
       description: trimToNull(description),
       coverImage,
     });
+  };
+
+  const chooseCover = async () => {
+    setPickingCover(true);
+    try {
+      const picked = await pickAndStoreImage("cover");
+      if (picked) setCoverImage(picked.path);
+    } finally {
+      setPickingCover(false);
+    }
   };
 
   return (
@@ -95,6 +108,31 @@ export function DeckEditor({ initial, onSubmit, onCancel }: Props) {
           numberOfLines={3}
           style={[styles.inputMulti, { color: theme.colors.textPrimary, borderColor: theme.colors.accentSoft, backgroundColor: theme.colors.bgCard }]}
         />
+
+        <Text style={[styles.label, { color: theme.colors.textMuted }]}>Cover image</Text>
+        {coverImage ? (
+          <View style={styles.coverWrap}>
+            <Image source={{ uri: coverImage }} style={styles.coverPreview} resizeMode="cover" />
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setCoverImage(null)}
+              style={[styles.btnGhost, { borderColor: theme.colors.accentSoft }]}
+            >
+              <Text style={[styles.btnGhostLabel, { color: theme.colors.textBody }]}>Remove cover</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            onPress={chooseCover}
+            disabled={pickingCover}
+            style={[styles.btnGhost, { borderColor: theme.colors.accentSoft, opacity: pickingCover ? 0.5 : 1 }]}
+          >
+            <Text style={[styles.btnGhostLabel, { color: theme.colors.textBody }]}>
+              {pickingCover ? "Picking…" : "Choose cover image"}
+            </Text>
+          </Pressable>
+        )}
 
         <View style={styles.actions}>
           <Pressable
@@ -152,6 +190,12 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: 6,
   },
+  coverWrap: { gap: 10, alignItems: "flex-start" },
+  coverPreview: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+    borderRadius: 10,
+  },
   actions: {
     flexDirection: "row",
     justifyContent: "flex-end",
@@ -163,6 +207,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 999,
     borderWidth: 1,
+    alignSelf: "flex-start",
   },
   btnGhostLabel: {
     fontFamily: FONT_SERIF,
