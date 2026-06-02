@@ -1,3 +1,7 @@
+jest.mock("@/lib/image", () => ({
+  pickAndStoreImage: jest.fn(async () => null),
+}));
+
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import { DeckEditor } from "../DeckEditor";
@@ -87,5 +91,38 @@ describe("DeckEditor", () => {
     expect(onSubmit).toHaveBeenCalledWith({
       name: "X", emoji: null, description: null, coverImage: null,
     });
+  });
+
+  it("preserves the initial coverImage through submit when the user doesn't change it", () => {
+    const onSubmit = jest.fn();
+    render(
+      <ThemeProvider mode="light">
+        <DeckEditor
+          initial={{ name: "X", emoji: null, description: null, coverImage: "file:///doc/images/cover_abc.jpg" }}
+          onSubmit={onSubmit}
+          onCancel={jest.fn()}
+        />
+      </ThemeProvider>
+    );
+    fireEvent.press(screen.getByRole("button", { name: /^save$/i }));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      coverImage: "file:///doc/images/cover_abc.jpg",
+    }));
+  });
+
+  it("Remove cover button clears the cover image", () => {
+    const onSubmit = jest.fn();
+    render(
+      <ThemeProvider mode="light">
+        <DeckEditor
+          initial={{ name: "X", emoji: null, description: null, coverImage: "file:///doc/images/cover_abc.jpg" }}
+          onSubmit={onSubmit}
+          onCancel={jest.fn()}
+        />
+      </ThemeProvider>
+    );
+    fireEvent.press(screen.getByRole("button", { name: /remove cover/i }));
+    fireEvent.press(screen.getByRole("button", { name: /^save$/i }));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ coverImage: null }));
   });
 });
