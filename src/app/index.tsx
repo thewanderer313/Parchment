@@ -94,9 +94,7 @@ export default function Home() {
               <DeckTile
                 deck={item}
                 cardCount={counts[item.id] ?? 0}
-                // /deck/[id] index route is owned by Plan 02b (Deck Detail).
-                // Cast unblocks the type-check until that route file exists.
-                onPress={() => router.push(`/deck/${item.id}` as never)}
+                onPress={() => router.push({ pathname: "/deck/[id]", params: { id: item.id } } as never)}
                 onLongPress={() => {
                   showDeckMenu(item.name, (choice) => {
                     if (choice === "edit") router.push({ pathname: "/deck/[id]/edit", params: { id: item.id } });
