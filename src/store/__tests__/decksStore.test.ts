@@ -1,4 +1,5 @@
 import { useDecksStore } from "../decksStore";
+import { getDatabase } from "@/db/client";
 
 interface DeckRow {
   id: string; name: string; emoji: string | null; description: string | null;
@@ -14,13 +15,17 @@ const fakeDb = {
 };
 
 jest.mock("@/db/client", () => ({
-  getDatabase: jest.fn(async () => fakeDb),
+  getDatabase: jest.fn(),
 }));
+
+const mockedGetDatabase = jest.mocked(getDatabase);
 
 describe("decksStore", () => {
   beforeEach(() => {
     fakeDb.rows = [];
     useDecksStore.setState({ decks: [], status: "idle" });
+    mockedGetDatabase.mockReset();
+    mockedGetDatabase.mockResolvedValue(fakeDb as never);
   });
 
   it("starts in idle state with no decks", () => {
@@ -50,5 +55,15 @@ describe("decksStore", () => {
     await useDecksStore.getState().load();
     expect(useDecksStore.getState().decks).toEqual([]);
     expect(useDecksStore.getState().status).toBe("ready");
+  });
+
+  it("sets status to 'error' and re-throws when the query fails", async () => {
+    const failingDb = {
+      getAllAsync: jest.fn().mockRejectedValue(new Error("db boom")),
+    };
+    mockedGetDatabase.mockResolvedValueOnce(failingDb as never);
+
+    await expect(useDecksStore.getState().load()).rejects.toThrow("db boom");
+    expect(useDecksStore.getState().status).toBe("error");
   });
 });
