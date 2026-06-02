@@ -32,9 +32,7 @@ export default function Home() {
           accessibilityRole="button"
           accessibilityLabel="Create new deck"
           style={[styles.plus, { backgroundColor: theme.colors.accentPrimary }]}
-          // typedRoutes can't see /deck/new until Task 9 lands; cast unblocks
-          // the type-check until the route file exists. Remove the cast then.
-          onPress={() => router.push("/deck/new" as never)}
+          onPress={() => router.push("/deck/new")}
         >
           <Text style={[styles.plusGlyph, { color: theme.colors.bgCard }]}>+</Text>
         </Pressable>
