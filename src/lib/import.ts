@@ -36,13 +36,23 @@ export interface ImportPlan {
 export type ResolveDecision = "keep" | "replace" | "skip";
 
 export function parseAndPlanImport(body: string, existingDecks: Deck[]): ImportPlan {
+  // Strip any UTF-8 BOM and trim whitespace before parsing. Messaging apps,
+  // email clients, and Drive sometimes prefix files with a BOM or add a
+  // trailing newline, both of which make a strict JSON.parse throw.
+  const cleaned = body.replace(/^﻿/, "").trim();
+  if (cleaned.length === 0) {
+    throw new Error("Invalid file: the file is empty");
+  }
   let parsed: unknown;
-  try { parsed = JSON.parse(body); } catch {
-    throw new Error("Invalid file: not valid JSON");
+  try { parsed = JSON.parse(cleaned); } catch (e) {
+    const reason = e instanceof Error ? e.message : String(e);
+    throw new Error(`Invalid file: not valid JSON (${reason})`);
   }
   const obj = parsed as { format?: string; decks?: ImportDeckData[] };
   if (obj.format !== "parchment.v1") {
-    throw new Error("Invalid file: missing or unsupported format field");
+    throw new Error(
+      `Invalid file: this isn't a Parchment export (expected format "parchment.v1", got "${obj.format ?? "missing"}")`
+    );
   }
   if (!Array.isArray(obj.decks)) {
     throw new Error("Invalid file: decks array missing");
