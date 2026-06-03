@@ -36,6 +36,7 @@ interface CardsState {
   create: (deckId: string, input: CardInput) => Promise<Card>;
   update: (id: string, input: CardInput) => Promise<void>;
   delete: (id: string, deckId: string) => Promise<void>;
+  reorder: (deckId: string, orderedIds: string[]) => Promise<void>;
 }
 
 interface RunnableDb {
@@ -148,5 +149,33 @@ export const useCardsStore = createStore<CardsState>((set, get) => ({
       cardsByDeck: { ...get().cardsByDeck, [deckId]: current.filter((c) => c.id !== id) },
       counts: { ...get().counts, [deckId]: Math.max(0, (get().counts[deckId] ?? 0) - 1) },
     });
+  },
+  async reorder(deckId, orderedIds) {
+    const current = get().cardsByDeck[deckId] ?? [];
+    if (orderedIds.length !== current.length) {
+      throw new Error(
+        `reorder: order length ${orderedIds.length} != card count ${current.length}`
+      );
+    }
+    const byId = new Map(current.map((c) => [c.id, c]));
+    for (const id of orderedIds) {
+      if (!byId.has(id)) throw new Error(`reorder: unknown id ${id}`);
+    }
+    const db = asRunnable(await getDatabase());
+    const now = Date.now();
+    const reordered: Card[] = orderedIds.map((id, idx) => ({
+      ...(byId.get(id) as Card),
+      sortOrder: idx,
+      updatedAt: now,
+    }));
+    await db.withTransactionAsync(async () => {
+      for (const c of reordered) {
+        await db.runAsync(
+          "UPDATE cards SET sort_order = ?, updated_at = ? WHERE id = ?;",
+          c.sortOrder, c.updatedAt, c.id
+        );
+      }
+    });
+    set({ cardsByDeck: { ...get().cardsByDeck, [deckId]: reordered } });
   },
 }));

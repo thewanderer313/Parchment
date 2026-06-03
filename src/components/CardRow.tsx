@@ -8,6 +8,9 @@ interface Props {
   card: Card;
   onPress: () => void;
   onLongPress: () => void;
+  /** Optional drag handle press — when provided, a ≡ grip appears on the
+   *  right of the row and pressing it (or long-pressing) starts a drag. */
+  onDragHandlePress?: () => void;
 }
 
 function previewText(s: string): string {
@@ -16,7 +19,7 @@ function previewText(s: string): string {
   return trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
 }
 
-export function CardRow({ card, onPress, onLongPress }: Props) {
+export function CardRow({ card, onPress, onLongPress, onDragHandlePress }: Props) {
   const { theme } = useTheme();
   const hasImage = card.frontImages.length > 0 || card.backImages.length > 0;
   const preview = previewText(card.frontText);
@@ -43,6 +46,18 @@ export function CardRow({ card, onPress, onLongPress }: Props) {
       {hasImage && (
         <Text style={[styles.icon, { color: theme.colors.textMuted }]}>🖼</Text>
       )}
+      {onDragHandlePress && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Reorder card"
+          onLongPress={onDragHandlePress}
+          delayLongPress={120}
+          hitSlop={8}
+          style={styles.gripBtn}
+        >
+          <Text style={[styles.grip, { color: theme.colors.textMuted }]}>≡</Text>
+        </Pressable>
+      )}
     </Pressable>
   );
 }
@@ -63,4 +78,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   icon: { fontSize: 16 },
+  gripBtn: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  grip: { fontSize: 20, fontWeight: "700" },
 });

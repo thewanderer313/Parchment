@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Pressable, StyleSheet, FlatList, Alert } from "react-native";
+import { View, Text, Pressable, StyleSheet, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import DraggableFlatList, {
+  type RenderItemParams,
+  ScaleDecorator,
+} from "react-native-draggable-flatlist";
 import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 import { useDecksStore } from "@/store/decksStore";
 import { useCardsStore } from "@/store/cardsStore";
@@ -174,19 +178,32 @@ export default function DeckDetailScreen() {
           <Text style={[styles.emptyCopy, { color: theme.colors.textMuted }]}>No cards yet. Tap "+ Add card" to create one.</Text>
         </View>
       ) : (
-        <FlatList
+        <DraggableFlatList
           data={cards}
           keyExtractor={(c) => c.id}
           contentContainerStyle={styles.list}
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-          renderItem={({ item }) => (
-            <CardRow
-              card={item}
-              onPress={() =>
-                router.push({ pathname: "/deck/[id]/card/[cardId]/edit", params: { id: deck.id, cardId: item.id } } as never)
-              }
-              onLongPress={() => setCardMenu(item)}
-            />
+          onDragEnd={({ data }) => {
+            // No-op if the order didn't actually change.
+            const before = cards.map((c) => c.id).join("|");
+            const after = data.map((c) => c.id).join("|");
+            if (before === after) return;
+            useCardsStore
+              .getState()
+              .reorder(deck.id, data.map((c) => c.id))
+              .catch((e) => Alert.alert("Couldn't reorder cards", e.message));
+          }}
+          renderItem={({ item, drag }: RenderItemParams<Card>) => (
+            <ScaleDecorator>
+              <CardRow
+                card={item}
+                onPress={() =>
+                  router.push({ pathname: "/deck/[id]/card/[cardId]/edit", params: { id: deck.id, cardId: item.id } } as never)
+                }
+                onLongPress={() => setCardMenu(item)}
+                onDragHandlePress={drag}
+              />
+            </ScaleDecorator>
           )}
         />
       )}

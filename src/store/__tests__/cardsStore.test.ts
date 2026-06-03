@@ -32,6 +32,12 @@ const fakeDb = {
       const [id, deck_id, front_text, front_images, back_text, back_images, sort_order, created_at, updated_at] =
         params as [string, string, string, string, string, string, number, number, number];
       this.rows.push({ id, deck_id, front_text, front_images, back_text, back_images, sort_order, created_at, updated_at });
+    } else if (/^UPDATE cards SET sort_order = \?/i.test(sql)) {
+      const [sort_order, updated_at, id] = params as [number, number, string];
+      const row = this.rows.find((r) => r.id === id);
+      if (!row) return;
+      row.sort_order = sort_order;
+      row.updated_at = updated_at;
     } else if (/^UPDATE cards SET/i.test(sql)) {
       const ps = params as unknown[];
       const id = ps[ps.length - 1] as string;
@@ -125,5 +131,35 @@ describe("cardsStore", () => {
     await useCardsStore.getState().create("d2", { frontText: "Q3", frontImages: [], backText: "A3", backImages: [] });
     await useCardsStore.getState().loadCounts();
     expect(useCardsStore.getState().counts).toEqual({ d1: 2, d2: 1 });
+  });
+
+  it("reorder() rewrites sort_order across all listed ids", async () => {
+    await useCardsStore.getState().create("d1", { frontText: "A", frontImages: [], backText: "X", backImages: [] });
+    await useCardsStore.getState().create("d1", { frontText: "B", frontImages: [], backText: "Y", backImages: [] });
+    await useCardsStore.getState().create("d1", { frontText: "C", frontImages: [], backText: "Z", backImages: [] });
+
+    const ids = useCardsStore.getState().cardsByDeck["d1"].map((c) => c.id);
+    await useCardsStore.getState().reorder("d1", [ids[2], ids[0], ids[1]]);
+
+    const reordered = useCardsStore.getState().cardsByDeck["d1"];
+    expect(reordered.map((c) => c.id)).toEqual([ids[2], ids[0], ids[1]]);
+    expect(reordered.map((c) => c.sortOrder)).toEqual([0, 1, 2]);
+    expect(
+      fakeDb.ran.filter((r) => /^UPDATE cards SET sort_order/i.test(r.sql)).length
+    ).toBe(3);
+  });
+
+  it("reorder() rejects when the id list length doesn't match the card count", async () => {
+    await useCardsStore.getState().create("d1", { frontText: "A", frontImages: [], backText: "X", backImages: [] });
+    await expect(
+      useCardsStore.getState().reorder("d1", [])
+    ).rejects.toThrow(/order length/i);
+  });
+
+  it("reorder() rejects when an id in the list is unknown", async () => {
+    await useCardsStore.getState().create("d1", { frontText: "A", frontImages: [], backText: "X", backImages: [] });
+    await expect(
+      useCardsStore.getState().reorder("d1", ["does-not-exist"])
+    ).rejects.toThrow(/unknown id/i);
   });
 });
