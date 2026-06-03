@@ -41,7 +41,17 @@ export default function StudyScreen() {
     if (id) loadByDeck(id);
   }, [id, loadByDeck]);
 
-  const [shuffle, setShuffle] = useState<boolean>(deck?.shuffleEnabled ?? false);
+  // Read shuffle from the deck so it stays in sync with the persisted value;
+  // tap-to-toggle below writes through decksStore.setShuffleEnabled so the
+  // preference survives leaving Study Mode and re-opening it later.
+  const shuffle = deck?.shuffleEnabled ?? false;
+  const setShuffle = (next: boolean) => {
+    if (!deck) return;
+    useDecksStore.getState().setShuffleEnabled(deck.id, next).catch(() => {
+      // Persistence failure shouldn't lock the user out — fall through;
+      // the in-memory state still updated via the store action's optimistic set.
+    });
+  };
   const orderedCards = useMemo(() => (shuffle ? shuffleArray(cards) : cards), [cards, shuffle]);
 
   const [index, setIndex] = useState(0);
@@ -117,7 +127,7 @@ export default function StudyScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Toggle shuffle"
-          onPress={() => setShuffle((s) => !s)}
+          onPress={() => setShuffle(!shuffle)}
           style={styles.iconBtn}
         >
           <Text style={[styles.iconLabel, { color: shuffle ? theme.colors.accentPrimary : theme.colors.textMuted }]}>⇄</Text>

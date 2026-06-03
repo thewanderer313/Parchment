@@ -50,6 +50,7 @@ interface DecksState {
   update: (id: string, patch: DeckUpdate) => Promise<void>;
   delete: (id: string) => Promise<void>;
   reorder: (orderedIds: string[]) => Promise<void>;
+  setShuffleEnabled: (id: string, enabled: boolean) => Promise<void>;
 }
 
 function rowToDeck(r: DeckRow): Deck {
@@ -165,5 +166,20 @@ export const useDecksStore = createStore<DecksState>((set, get) => ({
       }
     });
     set({ decks: reordered });
+  },
+  async setShuffleEnabled(id, enabled) {
+    const existing = get().decks.find((d) => d.id === id);
+    if (!existing) throw new Error(`No deck with id ${id}`);
+    const db = asRunnable(await getDatabase());
+    const now = Date.now();
+    await db.runAsync(
+      "UPDATE decks SET shuffle_enabled = ?, updated_at = ? WHERE id = ?;",
+      enabled ? 1 : 0, now, id
+    );
+    set({
+      decks: get().decks.map((d) =>
+        d.id === id ? { ...d, shuffleEnabled: enabled, updatedAt: now } : d
+      ),
+    });
   },
 }));
