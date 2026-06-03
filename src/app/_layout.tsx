@@ -18,6 +18,7 @@ import { useSettingsStore } from "@/store/settingsStore";
 import { useDecksStore } from "@/store/decksStore";
 import { useCardsStore } from "@/store/cardsStore";
 import { getDatabase } from "@/db/client";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 type BootStatus = "loading" | "ready" | "error";
 
@@ -111,13 +112,15 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <ThemeProvider mode={themeMode}>
-          <ThemedStack />
-        </ThemeProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <ThemeProvider mode={themeMode}>
+            <ThemedStack />
+          </ThemeProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
 
