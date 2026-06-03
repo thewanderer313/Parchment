@@ -36,6 +36,10 @@ export function CardEditor({ initial, onSubmit, onCancel, onDirtyChange }: Props
   const [backText, setBackText] = useState(initial.backText);
   const [backImages, setBackImages] = useState<string[]>(initial.backImages);
   const [picking, setPicking] = useState(false);
+  // Per-side selection (cursor position). Used by the toolbar so insertions
+  // land where the user is typing rather than at the end of the field.
+  const [frontSel, setFrontSel] = useState<{ start: number; end: number }>({ start: 0, end: 0 });
+  const [backSel, setBackSel] = useState<{ start: number; end: number }>({ start: 0, end: 0 });
 
   const isDirty = useMemo(
     () =>
@@ -54,6 +58,8 @@ export function CardEditor({ initial, onSubmit, onCancel, onDirtyChange }: Props
   const setText = active === "front" ? setFrontText : setBackText;
   const images = active === "front" ? frontImages : backImages;
   const setImages = active === "front" ? setFrontImages : setBackImages;
+  const selection = active === "front" ? frontSel : backSel;
+  const setSelection = active === "front" ? setFrontSel : setBackSel;
 
   const chooseImage = async () => {
     setPicking(true);
@@ -65,8 +71,28 @@ export function CardEditor({ initial, onSubmit, onCancel, onDirtyChange }: Props
     }
   };
 
-  const insertSyntax = (open: string, close: string = open) => {
-    setText(text + open + "text" + close);
+  /**
+   * Insert markdown syntax at the current cursor, wrapping the selected
+   * text (or a "text" placeholder) when `wrapClose` is provided. When
+   * `blockLine` is true, the open string is treated as a line-prefix and
+   * we prepend a newline if the cursor isn't already at the start of one.
+   * After insertion the selection collapses to just after the placeholder
+   * so the next keystroke continues editing the new text.
+   */
+  const insertAt = (open: string, wrapClose: string = "", blockLine: boolean = false) => {
+    const before = text.substring(0, selection.start);
+    const selected = text.substring(selection.start, selection.end);
+    const after = text.substring(selection.end);
+    const placeholder = selected.length > 0 ? selected : (wrapClose || blockLine ? "text" : "");
+    const linePrefix = blockLine && before.length > 0 && !before.endsWith("\n") ? "\n" : "";
+    const inserted = linePrefix + open + placeholder + wrapClose;
+    const newText = before + inserted + after;
+    setText(newText);
+    // Drop the cursor right after the placeholder text — feels natural
+    // because the user usually wants to keep typing inside the wrapper.
+    const newCursor =
+      before.length + linePrefix.length + open.length + placeholder.length;
+    setSelection({ start: newCursor, end: newCursor });
   };
 
   const submit = () => {
@@ -97,15 +123,34 @@ export function CardEditor({ initial, onSubmit, onCancel, onDirtyChange }: Props
 
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         <View style={[styles.toolbar, { borderColor: theme.colors.accentSoft }]}>
-          <Pressable onPress={() => insertSyntax("**")} style={styles.toolBtn}><Text style={{ fontWeight: "700", color: theme.colors.textBody }}>B</Text></Pressable>
-          <Pressable onPress={() => insertSyntax("*")} style={styles.toolBtn}><Text style={{ fontStyle: "italic", color: theme.colors.textBody }}>I</Text></Pressable>
-          <Pressable onPress={() => insertSyntax("- ", "")} style={styles.toolBtn}><Text style={{ color: theme.colors.textBody }}>•</Text></Pressable>
-          <Pressable onPress={() => insertSyntax("`")} style={styles.toolBtn}><Text style={{ fontFamily: "Courier", color: theme.colors.textBody }}>{"</>"}</Text></Pressable>
+          <Pressable accessibilityLabel="Bold" onPress={() => insertAt("**", "**")} style={styles.toolBtn}>
+            <Text style={{ fontWeight: "700", color: theme.colors.textBody }}>B</Text>
+          </Pressable>
+          <Pressable accessibilityLabel="Italic" onPress={() => insertAt("*", "*")} style={styles.toolBtn}>
+            <Text style={{ fontStyle: "italic", color: theme.colors.textBody }}>I</Text>
+          </Pressable>
+          <Pressable accessibilityLabel="Heading" onPress={() => insertAt("# ", "", true)} style={styles.toolBtn}>
+            <Text style={{ fontWeight: "700", color: theme.colors.textBody }}>H</Text>
+          </Pressable>
+          <Pressable accessibilityLabel="Bullet list" onPress={() => insertAt("- ", "", true)} style={styles.toolBtn}>
+            <Text style={{ color: theme.colors.textBody }}>•</Text>
+          </Pressable>
+          <Pressable accessibilityLabel="Numbered list" onPress={() => insertAt("1. ", "", true)} style={styles.toolBtn}>
+            <Text style={{ color: theme.colors.textBody, fontSize: 13 }}>1.</Text>
+          </Pressable>
+          <Pressable accessibilityLabel="Inline code" onPress={() => insertAt("`", "`")} style={styles.toolBtn}>
+            <Text style={{ fontFamily: "Courier", color: theme.colors.textBody }}>{"</>"}</Text>
+          </Pressable>
+          <Pressable accessibilityLabel="Link" onPress={() => insertAt("[", "](https://)")} style={styles.toolBtn}>
+            <Text style={{ color: theme.colors.textBody, fontSize: 14 }}>🔗</Text>
+          </Pressable>
         </View>
 
         <TextInput
           value={text}
           onChangeText={setText}
+          selection={selection}
+          onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
           placeholder={`${active === "front" ? "Front" : "Back"} markdown…`}
           placeholderTextColor={theme.colors.textMuted}
           multiline
@@ -155,8 +200,19 @@ const styles = StyleSheet.create({
   tab: { paddingVertical: 12, paddingHorizontal: 18 },
   tabLabel: { fontFamily: FONT_SERIF, fontSize: 14, fontWeight: "600" },
   body: { padding: 16, gap: 4 },
-  toolbar: { flexDirection: "row", borderWidth: 1, borderRadius: 8, padding: 4, gap: 4, alignSelf: "flex-start", marginBottom: 6 },
-  toolBtn: { paddingVertical: 4, paddingHorizontal: 10, minWidth: 32, alignItems: "center" },
+  // 7 buttons need wrapping on narrower phones; flexWrap means they fold
+  // onto a second row gracefully instead of overflowing horizontally.
+  toolbar: {
+    flexDirection: "row",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 4,
+    gap: 4,
+    flexWrap: "wrap",
+    alignSelf: "stretch",
+    marginBottom: 6,
+  },
+  toolBtn: { paddingVertical: 4, paddingHorizontal: 10, minWidth: 32, alignItems: "center", justifyContent: "center" },
   input: {
     fontFamily: FONT_SERIF, fontSize: 16,
     borderWidth: 1, borderRadius: 10,
