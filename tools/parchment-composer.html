@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parchment Composer</title>
+<style>
+  :root {
+    --bg-app: #e8dec5;
+    --bg-card: #f5ecd4;
+    --text-primary: #1f3024;
+    --text-body: #2a3b2e;
+    --text-muted: #4a6b48;
+    --accent: #2f4a35;
+    --accent-soft: #c9bf9f;
+    --danger: #a82020;
+    --serif: Georgia, "Iowan Old Style", Charter, serif;
+    --mono: "Courier New", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-app);
+    color: var(--text-body);
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 28px 24px 80px;
+  }
+  header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 6px;
+    letter-spacing: -0.5px;
+  }
+  header .sub {
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 28px;
+  }
+  .panel {
+    background: var(--bg-card);
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin-bottom: 18px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+  }
+  .panel h2 {
+    margin: 0 0 14px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  label.field {
+    display: block;
+    font-size: 11px;
+    font-style: italic;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  input[type="text"], textarea {
+    width: 100%;
+    font-family: var(--serif);
+    font-size: 15px;
+    color: var(--text-primary);
+    background: var(--bg-app);
+    border: 1px solid var(--accent-soft);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    resize: vertical;
+  }
+  textarea { min-height: 96px; font-size: 14px; }
+  .row {
+    display: grid;
+    grid-template-columns: 100px 100px 1fr;
+    gap: 14px;
+    margin-bottom: 8px;
+  }
+  .row > * { margin: 0; }
+  .card-block {
+    border: 1px solid var(--accent-soft);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    background: rgba(232, 222, 197, 0.4);
+  }
+  .card-block .header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .card-block .header-row .label {
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .card-block .header-row .pos {
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  .card-block .sides {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 720px) {
+    .card-block .sides { grid-template-columns: 1fr; }
+  }
+  .side {
+    display: flex;
+    flex-direction: column;
+  }
+  .side h4 {
+    margin: 0 0 4px;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-style: italic;
+    font-weight: 400;
+  }
+  .toolbar {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+  }
+  .toolbar button {
+    background: var(--bg-app);
+    border: 1px solid var(--accent-soft);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-family: var(--serif);
+    font-size: 13px;
+    color: var(--text-body);
+    cursor: pointer;
+    min-width: 32px;
+  }
+  .toolbar button:hover { background: var(--accent-soft); }
+  .preview {
+    margin-top: 6px;
+    padding: 10px 12px;
+    background: rgba(245, 236, 212, 0.6);
+    border: 1px dashed var(--accent-soft);
+    border-radius: 8px;
+    min-height: 40px;
+    font-size: 14px;
+    color: var(--text-body);
+  }
+  .preview h1 { font-size: 20px; margin: 4px 0 6px; color: var(--text-primary); }
+  .preview h2 { font-size: 17px; margin: 4px 0 6px; color: var(--text-primary); }
+  .preview h3 { font-size: 15px; margin: 4px 0 6px; color: var(--text-primary); }
+  .preview p { margin: 4px 0; }
+  .preview strong { color: var(--text-primary); }
+  .preview em { font-style: italic; }
+  .preview code {
+    font-family: var(--mono);
+    background: var(--bg-app);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .preview pre {
+    font-family: var(--mono);
+    background: var(--bg-app);
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin: 6px 0;
+    overflow-x: auto;
+    font-size: 13px;
+  }
+  .preview pre code { background: transparent; padding: 0; }
+  .preview ul, .preview ol { margin: 4px 0; padding-left: 24px; }
+  .preview a { color: var(--accent); text-decoration: underline; }
+  .preview img { max-width: 100%; border-radius: 6px; margin-top: 6px; }
+  .preview .empty {
+    font-style: italic;
+    color: var(--text-muted);
+  }
+  .image-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .image-row .thumb {
+    width: 56px; height: 56px;
+    border-radius: 6px;
+    background: var(--bg-app);
+    border: 1px solid var(--accent-soft);
+    background-size: cover;
+    background-position: center;
+  }
+  .image-row button {
+    background: var(--bg-app);
+    border: 1px solid var(--accent-soft);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-family: var(--serif);
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--text-body);
+  }
+  .image-row .file-name {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+    flex: 1;
+  }
+  .card-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+    gap: 8px;
+  }
+  .btn {
+    background: var(--accent);
+    color: var(--bg-card);
+    border: none;
+    border-radius: 999px;
+    padding: 10px 22px;
+    font-family: var(--serif);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn.ghost {
+    background: transparent;
+    color: var(--text-body);
+    border: 1px solid var(--accent-soft);
+  }
+  .btn.danger { background: var(--danger); }
+  .top-actions, .bottom-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .top-actions { margin-bottom: 18px; }
+  .bottom-actions {
+    justify-content: flex-end;
+    margin-top: 24px;
+  }
+  .status {
+    margin-left: auto;
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  .hidden { display: none !important; }
+  .hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Parchment Composer</h1>
+    <div class="sub">Build a deck of cards on your computer, then download a <code>.json</code> file to import into the Parchment app on your phone.</div>
+  </header>
+
+  <div class="top-actions">
+    <button class="btn ghost" id="saveDraftBtn">Save draft</button>
+    <button class="btn ghost" id="loadDraftBtn">Load draft</button>
+    <button class="btn ghost danger" id="clearBtn">Clear everything</button>
+    <button class="btn ghost" id="loadJsonBtn">Load .json…</button>
+    <span class="status" id="status"></span>
+    <input type="file" id="jsonInput" accept="application/json,.json" class="hidden">
+  </div>
+
+  <div class="panel">
+    <h2>Deck</h2>
+    <div class="row">
+      <div>
+        <label class="field">Emoji</label>
+        <input type="text" id="deckEmoji" maxlength="4" placeholder="🌿">
+      </div>
+      <div>
+        <label class="field">Cover</label>
+        <button class="btn ghost" id="coverBtn" style="padding:8px 12px;font-size:12px;">Choose…</button>
+        <input type="file" id="coverInput" accept="image/*" class="hidden">
+      </div>
+      <div>
+        <label class="field">Name</label>
+        <input type="text" id="deckName" placeholder="Spanish Vocab">
+      </div>
+    </div>
+    <label class="field">Description (optional)</label>
+    <textarea id="deckDescription" rows="2" style="min-height:auto" placeholder="Beginner vocabulary"></textarea>
+    <div id="coverPreviewRow" class="image-row hidden">
+      <div class="thumb" id="coverThumb"></div>
+      <span class="file-name" id="coverFileName"></span>
+      <button id="removeCoverBtn">Remove cover</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Cards</h2>
+    <div id="cardsContainer"></div>
+    <button class="btn" id="addCardBtn">+ Add card</button>
+  </div>
+
+  <div class="bottom-actions">
+    <button class="btn ghost" id="downloadBtn">Download .json</button>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+
+// ---------- State ----------
+let state = blankState();
+
+function blankState() {
+  return {
+    deck: { name: "", emoji: "", description: "", cover_image: null, cover_file_name: "" },
+    cards: [newCard()],
+  };
+}
+function newCard() {
+  return {
+    id: cryptoRandomUUID(),
+    front_text: "",
+    front_images: [],
+    front_file_name: "",
+    back_text: "",
+    back_images: [],
+    back_file_name: "",
+  };
+}
+function cryptoRandomUUID() {
+  if (window.crypto && typeof window.crypto.randomUUID === "function") {
+    return window.crypto.randomUUID();
+  }
+  // Fallback: RFC4122 v4
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    var r = (Math.random() * 16) | 0;
+    var v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+// ---------- Markdown renderer (small subset) ----------
+function escapeHtml(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function renderMarkdown(text) {
+  if (!text || text.trim().length === 0) {
+    return '<div class="empty">(empty)</div>';
+  }
+  let s = escapeHtml(text);
+  // Fenced code blocks
+  s = s.replace(/```([\s\S]*?)```/g, function (_, code) {
+    return "<pre><code>" + code.replace(/^\n/, "") + "</code></pre>";
+  });
+  // Headings (after escaping #)
+  s = s.replace(/^### (.*)$/gm, "<h3>$1</h3>");
+  s = s.replace(/^## (.*)$/gm, "<h2>$1</h2>");
+  s = s.replace(/^# (.*)$/gm, "<h1>$1</h1>");
+  // Bold + italic
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+  // Inline code
+  s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+  // Images ![alt](url) — must come before links
+  s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2">');
+  // Links [text](url)
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  // Bullet lists
+  s = s.replace(/((?:^- .*(?:\n|$))+)/gm, function (block) {
+    var items = block.trim().split("\n").map(function (l) {
+      return "<li>" + l.replace(/^- /, "") + "</li>";
+    }).join("");
+    return "<ul>" + items + "</ul>";
+  });
+  // Numbered lists
+  s = s.replace(/((?:^\d+\. .*(?:\n|$))+)/gm, function (block) {
+    var items = block.trim().split("\n").map(function (l) {
+      return "<li>" + l.replace(/^\d+\. /, "") + "</li>";
+    }).join("");
+    return "<ol>" + items + "</ol>";
+  });
+  // Paragraphs from double newlines
+  s = s.split(/\n{2,}/).map(function (p) {
+    var t = p.trim();
+    if (!t) return "";
+    if (/^<(h[1-3]|ul|ol|pre)/.test(t)) return t;
+    return "<p>" + t.replace(/\n/g, "<br>") + "</p>";
+  }).join("");
+  return s;
+}
+
+// ---------- DOM helpers ----------
+const $ = function (id) { return document.getElementById(id); };
+const cardsContainer = $("cardsContainer");
+
+function render() {
+  $("deckEmoji").value = state.deck.emoji;
+  $("deckName").value = state.deck.name;
+  $("deckDescription").value = state.deck.description;
+  if (state.deck.cover_image) {
+    $("coverPreviewRow").classList.remove("hidden");
+    $("coverThumb").style.backgroundImage = "url(" + state.deck.cover_image + ")";
+    $("coverFileName").textContent = state.deck.cover_file_name || "cover image";
+  } else {
+    $("coverPreviewRow").classList.add("hidden");
+  }
+
+  cardsContainer.innerHTML = "";
+  state.cards.forEach(function (c, idx) {
+    const block = document.createElement("div");
+    block.className = "card-block";
+    block.innerHTML = `
+      <div class="header-row">
+        <div class="label">Card ${idx + 1}</div>
+        <div class="pos">${state.cards.length === 1 ? "only card" : (idx + 1) + " of " + state.cards.length}</div>
+      </div>
+      <div class="sides">
+        <div class="side">
+          <h4>Front · Markdown</h4>
+          <div class="toolbar" data-side="front" data-idx="${idx}">
+            <button data-act="bold"><strong>B</strong></button>
+            <button data-act="italic"><em>I</em></button>
+            <button data-act="h"><strong>H</strong></button>
+            <button data-act="ul">•</button>
+            <button data-act="ol">1.</button>
+            <button data-act="code">&lt;/&gt;</button>
+            <button data-act="link">🔗</button>
+          </div>
+          <textarea data-side="front" data-idx="${idx}" rows="6">${c.front_text.replace(/</g, "&lt;")}</textarea>
+          <div class="image-row">
+            <div class="thumb" style="${c.front_images.length ? 'background-image:url(' + c.front_images[0] + ')' : ''}"></div>
+            <span class="file-name">${c.front_file_name || (c.front_images.length ? "image" : "no image")}</span>
+            <button data-act="choose-img" data-side="front" data-idx="${idx}">Choose…</button>
+            ${c.front_images.length ? '<button data-act="remove-img" data-side="front" data-idx="' + idx + '">Remove</button>' : ""}
+          </div>
+          <h4 style="margin-top:10px">Preview</h4>
+          <div class="preview" data-preview="front" data-idx="${idx}">${renderMarkdown(c.front_text)}</div>
+        </div>
+        <div class="side">
+          <h4>Back · Markdown</h4>
+          <div class="toolbar" data-side="back" data-idx="${idx}">
+            <button data-act="bold"><strong>B</strong></button>
+            <button data-act="italic"><em>I</em></button>
+            <button data-act="h"><strong>H</strong></button>
+            <button data-act="ul">•</button>
+            <button data-act="ol">1.</button>
+            <button data-act="code">&lt;/&gt;</button>
+            <button data-act="link">🔗</button>
+          </div>
+          <textarea data-side="back" data-idx="${idx}" rows="6">${c.back_text.replace(/</g, "&lt;")}</textarea>
+          <div class="image-row">
+            <div class="thumb" style="${c.back_images.length ? 'background-image:url(' + c.back_images[0] + ')' : ''}"></div>
+            <span class="file-name">${c.back_file_name || (c.back_images.length ? "image" : "no image")}</span>
+            <button data-act="choose-img" data-side="back" data-idx="${idx}">Choose…</button>
+            ${c.back_images.length ? '<button data-act="remove-img" data-side="back" data-idx="' + idx + '">Remove</button>' : ""}
+          </div>
+          <h4 style="margin-top:10px">Preview</h4>
+          <div class="preview" data-preview="back" data-idx="${idx}">${renderMarkdown(c.back_text)}</div>
+        </div>
+      </div>
+      <div class="card-actions">
+        ${state.cards.length > 1 ? '<button class="btn ghost" data-act="delete-card" data-idx="' + idx + '">Delete card</button>' : ""}
+        ${idx > 0 ? '<button class="btn ghost" data-act="move-up" data-idx="' + idx + '">↑ Move up</button>' : ""}
+        ${idx < state.cards.length - 1 ? '<button class="btn ghost" data-act="move-down" data-idx="' + idx + '">↓ Move down</button>' : ""}
+      </div>
+    `;
+    cardsContainer.appendChild(block);
+  });
+}
+
+// ---------- Event handling ----------
+function setText(idx, side, val) {
+  state.cards[idx][side === "front" ? "front_text" : "back_text"] = val;
+  // Re-render only that preview block to avoid losing focus
+  const previewEl = document.querySelector('[data-preview="' + side + '"][data-idx="' + idx + '"]');
+  if (previewEl) previewEl.innerHTML = renderMarkdown(val);
+}
+
+function insertSyntax(idx, side, action) {
+  const ta = document.querySelector('textarea[data-side="' + side + '"][data-idx="' + idx + '"]');
+  if (!ta) return;
+  const start = ta.selectionStart;
+  const end = ta.selectionEnd;
+  const value = ta.value;
+  const selected = value.substring(start, end) || "text";
+  let insert = "";
+  let cursorOffset = 0;
+  switch (action) {
+    case "bold":   insert = "**" + selected + "**"; cursorOffset = 2; break;
+    case "italic": insert = "*"  + selected + "*";  cursorOffset = 1; break;
+    case "code":   insert = "`"  + selected + "`";  cursorOffset = 1; break;
+    case "h":      insert = (start > 0 && value[start - 1] !== "\n" ? "\n" : "") + "# " + selected; cursorOffset = 2; break;
+    case "ul":     insert = (start > 0 && value[start - 1] !== "\n" ? "\n" : "") + "- " + selected; cursorOffset = 2; break;
+    case "ol":     insert = (start > 0 && value[start - 1] !== "\n" ? "\n" : "") + "1. " + selected; cursorOffset = 3; break;
+    case "link":   insert = "[" + selected + "](https://)"; cursorOffset = selected.length + 3; break;
+  }
+  const next = value.substring(0, start) + insert + value.substring(end);
+  ta.value = next;
+  state.cards[idx][side === "front" ? "front_text" : "back_text"] = next;
+  // Move cursor to a reasonable spot
+  const newPos = start + insert.length;
+  ta.setSelectionRange(newPos, newPos);
+  ta.focus();
+  const previewEl = document.querySelector('[data-preview="' + side + '"][data-idx="' + idx + '"]');
+  if (previewEl) previewEl.innerHTML = renderMarkdown(next);
+  setStatus("");
+}
+
+function chooseImage(idx, side) {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+  input.onchange = function (e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function () {
+      const dataUri = reader.result;
+      state.cards[idx][side === "front" ? "front_images" : "back_images"] = [dataUri];
+      state.cards[idx][side === "front" ? "front_file_name" : "back_file_name"] = file.name;
+      render();
+      setStatus("");
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function removeImage(idx, side) {
+  state.cards[idx][side === "front" ? "front_images" : "back_images"] = [];
+  state.cards[idx][side === "front" ? "front_file_name" : "back_file_name"] = "";
+  render();
+}
+
+function deleteCard(idx) {
+  state.cards.splice(idx, 1);
+  if (state.cards.length === 0) state.cards.push(newCard());
+  render();
+  setStatus("");
+}
+
+function moveCard(idx, dir) {
+  const target = idx + dir;
+  if (target < 0 || target >= state.cards.length) return;
+  const tmp = state.cards[idx];
+  state.cards[idx] = state.cards[target];
+  state.cards[target] = tmp;
+  render();
+  setStatus("");
+}
+
+function chooseCover() {
+  $("coverInput").click();
+}
+function removeCover() {
+  state.deck.cover_image = null;
+  state.deck.cover_file_name = "";
+  render();
+}
+
+// ---------- Status / persistence ----------
+function setStatus(msg) {
+  const el = $("status");
+  el.textContent = msg;
+  if (msg) setTimeout(function () { if (el.textContent === msg) el.textContent = ""; }, 3000);
+}
+function saveDraft() {
+  try {
+    localStorage.setItem("parchment-composer-draft", JSON.stringify(state));
+    setStatus("Draft saved.");
+  } catch (e) {
+    setStatus("Couldn't save: " + e.message);
+  }
+}
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem("parchment-composer-draft");
+    if (!raw) { setStatus("No draft saved yet."); return; }
+    state = JSON.parse(raw);
+    if (!state.cards || state.cards.length === 0) state.cards = [newCard()];
+    render();
+    setStatus("Draft loaded.");
+  } catch (e) {
+    setStatus("Couldn't load: " + e.message);
+  }
+}
+function clearAll() {
+  if (!confirm("Clear all deck info and cards? This can't be undone (the saved draft stays in localStorage).")) return;
+  state = blankState();
+  render();
+  setStatus("");
+}
+
+// ---------- Import / Export .json ----------
+function downloadJson() {
+  if (!state.deck.name.trim()) {
+    setStatus("Deck name is required before downloading.");
+    return;
+  }
+  const out = {
+    format: "parchment.v1",
+    exported_at: Date.now(),
+    decks: [{
+      id: cryptoRandomUUID(),
+      name: state.deck.name.trim(),
+      emoji: state.deck.emoji.trim() || null,
+      description: state.deck.description.trim() || null,
+      cover_image: state.deck.cover_image || null,
+      cards: state.cards.map(function (c) {
+        return {
+          id: c.id || cryptoRandomUUID(),
+          front_text: c.front_text,
+          front_images: c.front_images || [],
+          back_text: c.back_text,
+          back_images: c.back_images || [],
+        };
+      }),
+    }],
+  };
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const safeName = state.deck.name.replace(/[^a-z0-9_-]+/gi, "_").slice(0, 40) || "parchment";
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "parchment-" + safeName + ".json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  setStatus("Downloaded.");
+}
+
+function loadJsonFile(file) {
+  const reader = new FileReader();
+  reader.onload = function () {
+    try {
+      const text = String(reader.result || "").replace(/^﻿/, "").trim();
+      const obj = JSON.parse(text);
+      if (obj.format !== "parchment.v1") {
+        throw new Error("Not a parchment.v1 file (got: " + (obj.format || "missing") + ")");
+      }
+      if (!Array.isArray(obj.decks) || obj.decks.length === 0) {
+        throw new Error("No decks in file");
+      }
+      const deck = obj.decks[0];
+      state = {
+        deck: {
+          name: deck.name || "",
+          emoji: deck.emoji || "",
+          description: deck.description || "",
+          cover_image: deck.cover_image || null,
+          cover_file_name: deck.cover_image ? "cover" : "",
+        },
+        cards: (deck.cards || []).map(function (c) {
+          return {
+            id: c.id || cryptoRandomUUID(),
+            front_text: c.front_text || "",
+            front_images: c.front_images || [],
+            front_file_name: (c.front_images || []).length ? "image" : "",
+            back_text: c.back_text || "",
+            back_images: c.back_images || [],
+            back_file_name: (c.back_images || []).length ? "image" : "",
+          };
+        }),
+      };
+      if (state.cards.length === 0) state.cards.push(newCard());
+      render();
+      setStatus("Loaded " + state.cards.length + " card(s) from " + file.name + ".");
+    } catch (e) {
+      setStatus("Couldn't load: " + e.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ---------- Wire up ----------
+document.addEventListener("input", function (e) {
+  const t = e.target;
+  if (t.id === "deckEmoji") state.deck.emoji = t.value;
+  else if (t.id === "deckName") state.deck.name = t.value;
+  else if (t.id === "deckDescription") state.deck.description = t.value;
+  else if (t.tagName === "TEXTAREA" && t.dataset.side) {
+    const idx = parseInt(t.dataset.idx, 10);
+    setText(idx, t.dataset.side, t.value);
+  }
+});
+
+document.addEventListener("click", function (e) {
+  const t = e.target.closest("button, [data-act]");
+  if (!t) return;
+  const act = t.dataset.act;
+  const idx = t.dataset.idx !== undefined ? parseInt(t.dataset.idx, 10) : null;
+  const side = t.dataset.side || null;
+  switch (act) {
+    case "bold":
+    case "italic":
+    case "code":
+    case "h":
+    case "ul":
+    case "ol":
+    case "link":
+      insertSyntax(idx, side, act);
+      break;
+    case "choose-img": chooseImage(idx, side); break;
+    case "remove-img": removeImage(idx, side); break;
+    case "delete-card": deleteCard(idx); break;
+    case "move-up": moveCard(idx, -1); break;
+    case "move-down": moveCard(idx, +1); break;
+  }
+  // top-level buttons by id
+  switch (t.id) {
+    case "addCardBtn": state.cards.push(newCard()); render(); break;
+    case "saveDraftBtn": saveDraft(); break;
+    case "loadDraftBtn": loadDraft(); break;
+    case "clearBtn": clearAll(); break;
+    case "downloadBtn": downloadJson(); break;
+    case "coverBtn": chooseCover(); break;
+    case "removeCoverBtn": removeCover(); break;
+    case "loadJsonBtn": $("jsonInput").click(); break;
+  }
+});
+
+$("coverInput").addEventListener("change", function (e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function () {
+    state.deck.cover_image = reader.result;
+    state.deck.cover_file_name = file.name;
+    render();
+  };
+  reader.readAsDataURL(file);
+});
+
+$("jsonInput").addEventListener("change", function (e) {
+  const file = e.target.files && e.target.files[0];
+  if (file) loadJsonFile(file);
+  e.target.value = "";
+});
+
+// Auto-load draft on first open if present and current state is blank
+(function autoload() {
+  try {
+    const raw = localStorage.getItem("parchment-composer-draft");
+    if (raw) {
+      const saved = JSON.parse(raw);
+      if (saved && saved.cards && saved.cards.length > 0) {
+        state = saved;
+      }
+    }
+  } catch (_e) { /* ignore */ }
+  render();
+})();
+
+</script>
+</body>
+</html>
