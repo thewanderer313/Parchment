@@ -7,15 +7,18 @@ import { useCardsStore } from "@/store/cardsStore";
 import { useTheme } from "@/theme/ThemeProvider";
 import { FONT_SERIF } from "@/theme/fonts";
 import { CardRow } from "@/components/CardRow";
+import { exportDeck } from "@/lib/export";
+import { writeAndShare } from "@/lib/share";
 
 // Stable empty-array reference so the cards selector below doesn't return a
 // new `[]` on every render — which would cause Zustand's getSnapshot to
 // report a change every render and re-trigger the component infinitely.
 const EMPTY_CARDS: never[] = [];
 
-type MenuChoice = "edit" | "delete" | "cancel";
+type CardMenuChoice = "edit" | "delete" | "cancel";
+type DeckMenuChoice = "edit" | "share" | "delete" | "cancel";
 
-function showCardMenu(onChoose: (c: MenuChoice) => void) {
+function showCardMenu(onChoose: (c: CardMenuChoice) => void) {
   if (Platform.OS === "ios") {
     ActionSheetIOS.showActionSheetWithOptions(
       { options: ["Cancel", "Edit", "Delete"], destructiveButtonIndex: 2, cancelButtonIndex: 0 },
@@ -29,6 +32,32 @@ function showCardMenu(onChoose: (c: MenuChoice) => void) {
     Alert.alert("Card", "", [
       { text: "Cancel", style: "cancel", onPress: () => onChoose("cancel") },
       { text: "Edit", onPress: () => onChoose("edit") },
+      { text: "Delete", style: "destructive", onPress: () => onChoose("delete") },
+    ]);
+  }
+}
+
+function showDeckMenu(deckName: string, onChoose: (c: DeckMenuChoice) => void) {
+  if (Platform.OS === "ios") {
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: ["Cancel", "Edit", "Share", "Delete"],
+        destructiveButtonIndex: 3,
+        cancelButtonIndex: 0,
+        title: deckName,
+      },
+      (i) => {
+        if (i === 1) onChoose("edit");
+        else if (i === 2) onChoose("share");
+        else if (i === 3) onChoose("delete");
+        else onChoose("cancel");
+      }
+    );
+  } else {
+    Alert.alert(deckName, "", [
+      { text: "Cancel", style: "cancel", onPress: () => onChoose("cancel") },
+      { text: "Edit", onPress: () => onChoose("edit") },
+      { text: "Share", onPress: () => onChoose("share") },
       { text: "Delete", style: "destructive", onPress: () => onChoose("delete") },
     ]);
   }
@@ -57,6 +86,51 @@ export default function DeckDetailScreen() {
     );
   }
 
+  const openDeckMenu = () => {
+    showDeckMenu(deck.name, (choice) => {
+      if (choice === "edit") {
+        router.push({ pathname: "/deck/[id]/edit", params: { id: deck.id } });
+      } else if (choice === "share") {
+        (async () => {
+          try {
+            const json = await exportDeck(
+              deck.id,
+              useDecksStore.getState().decks,
+              useCardsStore.getState().cardsByDeck
+            );
+            await writeAndShare(json, `parchment-deck-${deck.name}`);
+          } catch (e: unknown) {
+            Alert.alert("Couldn't share deck", e instanceof Error ? e.message : String(e));
+          }
+        })();
+      } else if (choice === "delete") {
+        Alert.alert(
+          `Delete "${deck.name}"?`,
+          "This will permanently remove the deck and all of its cards.",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Delete",
+              style: "destructive",
+              onPress: () => {
+                useDecksStore
+                  .getState()
+                  .delete(deck.id)
+                  .then(() => {
+                    // After successful delete, leave this screen — the deck
+                    // no longer exists, so staying here would render the
+                    // "Deck not found" branch.
+                    router.back();
+                  })
+                  .catch((e) => Alert.alert("Couldn't delete deck", e.message));
+              },
+            },
+          ]
+        );
+      }
+    });
+  };
+
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: theme.colors.bgApp }]} edges={["bottom", "left", "right"]}>
       <Stack.Screen options={{ title: deck.name }} />
@@ -70,6 +144,15 @@ export default function DeckDetailScreen() {
             </Text>
           )}
         </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Deck options"
+          onPress={openDeckMenu}
+          style={styles.menuBtn}
+          hitSlop={8}
+        >
+          <Text style={[styles.menuGlyph, { color: theme.colors.textMuted }]}>⋮</Text>
+        </Pressable>
       </View>
 
       <View style={styles.actions}>
@@ -152,4 +235,6 @@ const styles = StyleSheet.create({
   empty: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 16 },
   emptyGlyph: { fontSize: 48 },
   emptyCopy: { fontFamily: FONT_SERIF, fontSize: 14, fontStyle: "italic", textAlign: "center", maxWidth: 280 },
+  menuBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  menuGlyph: { fontSize: 26, lineHeight: 26, fontWeight: "700" },
 });
