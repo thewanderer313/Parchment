@@ -63,21 +63,33 @@ export const useCardsStore = createStore<CardsState>((set, get) => ({
   cardsByDeck: {},
   counts: {},
   async loadByDeck(deckId) {
-    const db = asRunnable(await getDatabase());
-    const rows = await db.getAllAsync<CardRow>(
-      "SELECT * FROM cards WHERE deck_id = ? ORDER BY sort_order ASC, created_at ASC;",
-      deckId
-    );
-    set({ cardsByDeck: { ...get().cardsByDeck, [deckId]: rows.map(rowToCard) } });
+    try {
+      const db = asRunnable(await getDatabase());
+      const rows = await db.getAllAsync<CardRow>(
+        "SELECT * FROM cards WHERE deck_id = ? ORDER BY sort_order ASC, created_at ASC;",
+        deckId
+      );
+      set({ cardsByDeck: { ...get().cardsByDeck, [deckId]: rows.map(rowToCard) } });
+    } catch (e) {
+      // Swallow inside the store so React effects (which can't easily handle
+      // async rejections) don't see an unhandled rejection that may crash
+      // Android in release mode. UI shows an empty card list instead.
+      console.warn("cardsStore.loadByDeck failed:", e);
+      set({ cardsByDeck: { ...get().cardsByDeck, [deckId]: [] } });
+    }
   },
   async loadCounts() {
-    const db = asRunnable(await getDatabase());
-    const rows = await db.getAllAsync<{ deck_id: string; count: number }>(
-      "SELECT deck_id, COUNT(*) as count FROM cards GROUP BY deck_id;"
-    );
-    const counts: Record<string, number> = {};
-    for (const row of rows) counts[row.deck_id] = row.count;
-    set({ counts });
+    try {
+      const db = asRunnable(await getDatabase());
+      const rows = await db.getAllAsync<{ deck_id: string; count: number }>(
+        "SELECT deck_id, COUNT(*) as count FROM cards GROUP BY deck_id;"
+      );
+      const counts: Record<string, number> = {};
+      for (const row of rows) counts[row.deck_id] = row.count;
+      set({ counts });
+    } catch (e) {
+      console.warn("cardsStore.loadCounts failed:", e);
+    }
   },
   async create(deckId, input) {
     const db = asRunnable(await getDatabase());
