@@ -1,7 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import {
-  View, Text, Pressable, StyleSheet, FlatList,
-  Alert, Platform, ActionSheetIOS,
+  View, Text, Pressable, StyleSheet, FlatList, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
@@ -12,35 +11,9 @@ import { exportDeck } from "@/lib/export";
 import { writeAndShare } from "@/lib/share";
 import { EmptyDeckList } from "@/components/EmptyDeckList";
 import { DeckTile } from "@/components/DeckTile";
+import { ActionSheet, type ActionSheetItem } from "@/components/ActionSheet";
+import type { Deck } from "@/store/decksStore";
 import { FONT_SERIF } from "@/theme/fonts";
-
-type MenuChoice = "edit" | "share" | "delete" | "cancel";
-
-function showDeckMenu(deckName: string, onChoose: (choice: MenuChoice) => void) {
-  if (Platform.OS === "ios") {
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        options: ["Cancel", "Edit", "Share", "Delete"],
-        destructiveButtonIndex: 3,
-        cancelButtonIndex: 0,
-        title: deckName,
-      },
-      (index) => {
-        if (index === 1) onChoose("edit");
-        else if (index === 2) onChoose("share");
-        else if (index === 3) onChoose("delete");
-        else onChoose("cancel");
-      }
-    );
-  } else {
-    Alert.alert(deckName, "", [
-      { text: "Cancel", style: "cancel", onPress: () => onChoose("cancel") },
-      { text: "Edit", onPress: () => onChoose("edit") },
-      { text: "Share", onPress: () => onChoose("share") },
-      { text: "Delete", style: "destructive", onPress: () => onChoose("delete") },
-    ]);
-  }
-}
 
 function confirmDelete(deckName: string, onConfirm: () => void) {
   Alert.alert(
@@ -58,6 +31,48 @@ export default function Home() {
   const decks = useDecksStore((s) => s.decks);
   const counts = useCardsStore((s) => s.counts);
   const router = useRouter();
+  const [menuDeck, setMenuDeck] = useState<Deck | null>(null);
+
+  const menuItems: ActionSheetItem[] = menuDeck
+    ? [
+        {
+          label: "Edit",
+          onPress: () =>
+            router.push({ pathname: "/deck/[id]/edit", params: { id: menuDeck.id } }),
+        },
+        {
+          label: "Share",
+          onPress: () => {
+            (async () => {
+              try {
+                const json = await exportDeck(
+                  menuDeck.id,
+                  useDecksStore.getState().decks,
+                  useCardsStore.getState().cardsByDeck
+                );
+                await writeAndShare(json, `parchment-deck-${menuDeck.name}`);
+              } catch (e: unknown) {
+                Alert.alert(
+                  "Couldn't share deck",
+                  e instanceof Error ? e.message : String(e)
+                );
+              }
+            })();
+          },
+        },
+        {
+          label: "Delete",
+          destructive: true,
+          onPress: () =>
+            confirmDelete(menuDeck.name, () => {
+              useDecksStore
+                .getState()
+                .delete(menuDeck.id)
+                .catch((e) => Alert.alert("Couldn't delete deck", e.message));
+            }),
+        },
+      ]
+    : [];
 
   return (
     <SafeAreaView
@@ -109,37 +124,19 @@ export default function Home() {
                 deck={item}
                 cardCount={counts[item.id] ?? 0}
                 onPress={() => router.push({ pathname: "/deck/[id]", params: { id: item.id } } as never)}
-                onLongPress={() => {
-                  showDeckMenu(item.name, (choice) => {
-                    if (choice === "edit") router.push({ pathname: "/deck/[id]/edit", params: { id: item.id } });
-                    else if (choice === "share") {
-                      (async () => {
-                        try {
-                          const json = await exportDeck(
-                            item.id,
-                            useDecksStore.getState().decks,
-                            useCardsStore.getState().cardsByDeck
-                          );
-                          await writeAndShare(json, `parchment-deck-${item.name}`);
-                        } catch (e: unknown) {
-                          Alert.alert("Couldn't share deck", e instanceof Error ? e.message : String(e));
-                        }
-                      })();
-                    }
-                    else if (choice === "delete") {
-                      confirmDelete(item.name, () => {
-                        useDecksStore.getState().delete(item.id).catch((e) => {
-                          Alert.alert("Couldn't delete deck", e.message);
-                        });
-                      });
-                    }
-                  });
-                }}
+                onLongPress={() => setMenuDeck(item)}
               />
             </View>
           )}
         />
       )}
+
+      <ActionSheet
+        visible={menuDeck !== null}
+        title={menuDeck?.name}
+        items={menuItems}
+        onClose={() => setMenuDeck(null)}
+      />
     </SafeAreaView>
   );
 }

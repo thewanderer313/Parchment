@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { View, Text, Pressable, StyleSheet, FlatList, Alert, Platform, ActionSheetIOS } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, Pressable, StyleSheet, FlatList, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 import { useDecksStore } from "@/store/decksStore";
@@ -9,59 +9,13 @@ import { FONT_SERIF } from "@/theme/fonts";
 import { CardRow } from "@/components/CardRow";
 import { exportDeck } from "@/lib/export";
 import { writeAndShare } from "@/lib/share";
+import { ActionSheet, type ActionSheetItem } from "@/components/ActionSheet";
+import type { Card } from "@/store/cardsStore";
 
 // Stable empty-array reference so the cards selector below doesn't return a
 // new `[]` on every render — which would cause Zustand's getSnapshot to
 // report a change every render and re-trigger the component infinitely.
 const EMPTY_CARDS: never[] = [];
-
-type CardMenuChoice = "edit" | "delete" | "cancel";
-type DeckMenuChoice = "edit" | "share" | "delete" | "cancel";
-
-function showCardMenu(onChoose: (c: CardMenuChoice) => void) {
-  if (Platform.OS === "ios") {
-    ActionSheetIOS.showActionSheetWithOptions(
-      { options: ["Cancel", "Edit", "Delete"], destructiveButtonIndex: 2, cancelButtonIndex: 0 },
-      (i) => {
-        if (i === 1) onChoose("edit");
-        else if (i === 2) onChoose("delete");
-        else onChoose("cancel");
-      }
-    );
-  } else {
-    Alert.alert("Card", "", [
-      { text: "Cancel", style: "cancel", onPress: () => onChoose("cancel") },
-      { text: "Edit", onPress: () => onChoose("edit") },
-      { text: "Delete", style: "destructive", onPress: () => onChoose("delete") },
-    ]);
-  }
-}
-
-function showDeckMenu(deckName: string, onChoose: (c: DeckMenuChoice) => void) {
-  if (Platform.OS === "ios") {
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        options: ["Cancel", "Edit", "Share", "Delete"],
-        destructiveButtonIndex: 3,
-        cancelButtonIndex: 0,
-        title: deckName,
-      },
-      (i) => {
-        if (i === 1) onChoose("edit");
-        else if (i === 2) onChoose("share");
-        else if (i === 3) onChoose("delete");
-        else onChoose("cancel");
-      }
-    );
-  } else {
-    Alert.alert(deckName, "", [
-      { text: "Cancel", style: "cancel", onPress: () => onChoose("cancel") },
-      { text: "Edit", onPress: () => onChoose("edit") },
-      { text: "Share", onPress: () => onChoose("share") },
-      { text: "Delete", style: "destructive", onPress: () => onChoose("delete") },
-    ]);
-  }
-}
 
 export default function DeckDetailScreen() {
   const router = useRouter();
@@ -70,6 +24,8 @@ export default function DeckDetailScreen() {
   const deck = useDecksStore((s) => s.decks.find((d) => d.id === id));
   const cards = useCardsStore((s) => s.cardsByDeck[id ?? ""] ?? EMPTY_CARDS);
   const loadByDeck = useCardsStore((s) => s.loadByDeck);
+  const [deckMenuVisible, setDeckMenuVisible] = useState(false);
+  const [cardMenu, setCardMenu] = useState<Card | null>(null);
 
   useEffect(() => {
     if (id) loadByDeck(id);
@@ -86,11 +42,14 @@ export default function DeckDetailScreen() {
     );
   }
 
-  const openDeckMenu = () => {
-    showDeckMenu(deck.name, (choice) => {
-      if (choice === "edit") {
-        router.push({ pathname: "/deck/[id]/edit", params: { id: deck.id } });
-      } else if (choice === "share") {
+  const deckMenuItems: ActionSheetItem[] = [
+    {
+      label: "Edit",
+      onPress: () => router.push({ pathname: "/deck/[id]/edit", params: { id: deck.id } }),
+    },
+    {
+      label: "Share",
+      onPress: () => {
         (async () => {
           try {
             const json = await exportDeck(
@@ -103,7 +62,12 @@ export default function DeckDetailScreen() {
             Alert.alert("Couldn't share deck", e instanceof Error ? e.message : String(e));
           }
         })();
-      } else if (choice === "delete") {
+      },
+    },
+    {
+      label: "Delete",
+      destructive: true,
+      onPress: () => {
         Alert.alert(
           `Delete "${deck.name}"?`,
           "This will permanently remove the deck and all of its cards.",
@@ -116,20 +80,48 @@ export default function DeckDetailScreen() {
                 useDecksStore
                   .getState()
                   .delete(deck.id)
-                  .then(() => {
-                    // After successful delete, leave this screen — the deck
-                    // no longer exists, so staying here would render the
-                    // "Deck not found" branch.
-                    router.back();
-                  })
+                  .then(() => router.back())
                   .catch((e) => Alert.alert("Couldn't delete deck", e.message));
               },
             },
           ]
         );
-      }
-    });
-  };
+      },
+    },
+  ];
+
+  const cardMenuItems: ActionSheetItem[] = cardMenu
+    ? [
+        {
+          label: "Edit",
+          onPress: () =>
+            router.push({
+              pathname: "/deck/[id]/card/[cardId]/edit",
+              params: { id: deck.id, cardId: cardMenu.id },
+            } as never),
+        },
+        {
+          label: "Delete",
+          destructive: true,
+          onPress: () => {
+            const cardId = cardMenu.id;
+            Alert.alert("Delete card?", "This will permanently remove the card.", [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Delete",
+                style: "destructive",
+                onPress: () => {
+                  useCardsStore
+                    .getState()
+                    .delete(cardId, deck.id)
+                    .catch((e) => Alert.alert("Couldn't delete card", e.message));
+                },
+              },
+            ]);
+          },
+        },
+      ]
+    : [];
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: theme.colors.bgApp }]} edges={["bottom", "left", "right"]}>
@@ -147,7 +139,7 @@ export default function DeckDetailScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Deck options"
-          onPress={openDeckMenu}
+          onPress={() => setDeckMenuVisible(true)}
           style={styles.menuBtn}
           hitSlop={8}
         >
@@ -193,29 +185,24 @@ export default function DeckDetailScreen() {
               onPress={() =>
                 router.push({ pathname: "/deck/[id]/card/[cardId]/edit", params: { id: deck.id, cardId: item.id } } as never)
               }
-              onLongPress={() =>
-                showCardMenu((c) => {
-                  if (c === "edit")
-                    router.push({ pathname: "/deck/[id]/card/[cardId]/edit", params: { id: deck.id, cardId: item.id } } as never);
-                  else if (c === "delete")
-                    Alert.alert("Delete card?", "This will permanently remove the card.", [
-                      { text: "Cancel", style: "cancel" },
-                      {
-                        text: "Delete",
-                        style: "destructive",
-                        onPress: () => {
-                          useCardsStore.getState().delete(item.id, deck.id).catch((e) =>
-                            Alert.alert("Couldn't delete card", e.message)
-                          );
-                        },
-                      },
-                    ]);
-                })
-              }
+              onLongPress={() => setCardMenu(item)}
             />
           )}
         />
       )}
+
+      <ActionSheet
+        visible={deckMenuVisible}
+        title={deck.name}
+        items={deckMenuItems}
+        onClose={() => setDeckMenuVisible(false)}
+      />
+      <ActionSheet
+        visible={cardMenu !== null}
+        title="Card"
+        items={cardMenuItems}
+        onClose={() => setCardMenu(null)}
+      />
     </SafeAreaView>
   );
 }
