@@ -8,6 +8,11 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { FONT_SERIF } from "@/theme/fonts";
 import { CardRow } from "@/components/CardRow";
 
+// Stable empty-array reference so the cards selector below doesn't return a
+// new `[]` on every render — which would cause Zustand's getSnapshot to
+// report a change every render and re-trigger the component infinitely.
+const EMPTY_CARDS: never[] = [];
+
 type MenuChoice = "edit" | "delete" | "cancel";
 
 function showCardMenu(onChoose: (c: MenuChoice) => void) {
@@ -34,7 +39,7 @@ export default function DeckDetailScreen() {
   const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const deck = useDecksStore((s) => s.decks.find((d) => d.id === id));
-  const cards = useCardsStore((s) => s.cardsByDeck[id ?? ""] ?? []);
+  const cards = useCardsStore((s) => s.cardsByDeck[id ?? ""] ?? EMPTY_CARDS);
   const loadByDeck = useCardsStore((s) => s.loadByDeck);
 
   useEffect(() => {
