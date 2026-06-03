@@ -1,12 +1,13 @@
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
-import * as FileSystem from "expo-file-system";
+// SDK 56 moved the string-path file APIs (readAsStringAsync, writeAsStringAsync,
+// documentDirectory, copyAsync, etc.) to /legacy. The main entry's re-exports
+// from "expo-file-system" are deprecation shims that THROW at runtime — must
+// import from "/legacy" for real device behavior.
+import * as FileSystem from "expo-file-system/legacy";
 import { newUuid } from "./uuid";
 
-// documentDirectory is runtime-available but not typed in the SDK 56 main entry;
-// the legacy subpackage exports it — we read it via the namespace to keep the
-// jest.mock("expo-file-system", …) shim working in tests.
-const DOC_DIR = (FileSystem as unknown as { documentDirectory: string | null }).documentDirectory ?? "";
+const DOC_DIR = FileSystem.documentDirectory ?? "";
 export const IMAGE_DIR = `${DOC_DIR}images/`;
 
 const MAX_DIMENSION = 1600;

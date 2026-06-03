@@ -1,4 +1,6 @@
-import * as FileSystem from "expo-file-system";
+// /legacy entry — the main "expo-file-system" entry's re-exports throw at
+// runtime in SDK 56. See src/lib/export.ts for the same workaround.
+import * as FileSystem from "expo-file-system/legacy";
 import type { Deck } from "@/store/decksStore";
 import { useDecksStore } from "@/store/decksStore";
 import { useCardsStore } from "@/store/cardsStore";
@@ -57,7 +59,7 @@ export function parseAndPlanImport(body: string, existingDecks: Deck[]): ImportP
   return { entries };
 }
 
-const DOC_DIR = (FileSystem as unknown as { documentDirectory: string | null }).documentDirectory ?? "";
+const DOC_DIR = FileSystem.documentDirectory ?? "";
 const IMAGE_DIR = `${DOC_DIR}images/`;
 
 async function ensureImageDir() {
@@ -73,7 +75,9 @@ async function dataUriToFile(uri: string, prefix?: string): Promise<string> {
   await ensureImageDir();
   const tag = prefix ? `${prefix}_` : "";
   const dest = `${IMAGE_DIR}${tag}${newUuid()}.jpg`;
-  await FileSystem.writeAsStringAsync(dest, m[1], { encoding: "base64" as never });
+  await FileSystem.writeAsStringAsync(dest, m[1], {
+    encoding: FileSystem.EncodingType.Base64,
+  });
   return dest;
 }
 

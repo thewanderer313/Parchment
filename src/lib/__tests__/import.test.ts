@@ -68,7 +68,7 @@ jest.mock("@/store/cardsStore", () => ({
     })),
   },
 }));
-jest.mock("expo-file-system", () => ({
+jest.mock("expo-file-system/legacy", () => ({
   writeAsStringAsync: jest.fn(),
   makeDirectoryAsync: jest.fn(),
   getInfoAsync: jest.fn(async () => ({ exists: true })),

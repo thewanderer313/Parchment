@@ -1,8 +1,9 @@
-import * as FileSystem from "expo-file-system";
+// /legacy entry — see src/lib/export.ts for the SDK 56 deprecation note.
+import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import * as DocumentPicker from "expo-document-picker";
 
-const DOC_DIR = (FileSystem as unknown as { documentDirectory: string | null }).documentDirectory ?? "";
+const DOC_DIR = FileSystem.documentDirectory ?? "";
 
 function safeFilename(name: string): string {
   return name.replace(/[^a-z0-9_-]+/gi, "_").slice(0, 40) || "parchment";

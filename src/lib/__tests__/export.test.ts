@@ -14,7 +14,7 @@ const card: Card = {
   sortOrder: 0, createdAt: 1000, updatedAt: 1000,
 };
 
-jest.mock("expo-file-system", () => ({
+jest.mock("expo-file-system/legacy", () => ({
   readAsStringAsync: jest.fn(async (path: string) => `base64-of-${path}`),
   EncodingType: { Base64: "base64" },
   documentDirectory: "file:///doc/",

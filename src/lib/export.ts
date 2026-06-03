@@ -1,9 +1,13 @@
-import * as FileSystem from "expo-file-system";
+// /legacy entry exposes the string-path file API; importing from the main
+// "expo-file-system" entry calls deprecation shims that throw at runtime.
+import * as FileSystem from "expo-file-system/legacy";
 import type { Deck } from "@/store/decksStore";
 import type { Card } from "@/store/cardsStore";
 
 async function readAsDataUri(path: string): Promise<string> {
-  const b64 = await FileSystem.readAsStringAsync(path, { encoding: "base64" as never });
+  const b64 = await FileSystem.readAsStringAsync(path, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
   return `data:image/jpeg;base64,${b64}`;
 }
 

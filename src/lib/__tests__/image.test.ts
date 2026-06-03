@@ -1,6 +1,6 @@
 import { buildImagePath, IMAGE_DIR } from "../image";
 
-jest.mock("expo-file-system", () => ({
+jest.mock("expo-file-system/legacy", () => ({
   documentDirectory: "file:///doc/",
   makeDirectoryAsync: jest.fn(),
   copyAsync: jest.fn(),
