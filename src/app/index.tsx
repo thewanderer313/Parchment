@@ -12,6 +12,8 @@ import { writeAndShare } from "@/lib/share";
 import { EmptyDeckList } from "@/components/EmptyDeckList";
 import { DeckTile } from "@/components/DeckTile";
 import { ActionSheet, type ActionSheetItem } from "@/components/ActionSheet";
+import { PasteImportModal } from "@/components/PasteImportModal";
+import { useDeckImport } from "@/lib/useDeckImport";
 import type { Deck } from "@/store/decksStore";
 import { FONT_SERIF } from "@/theme/fonts";
 
@@ -32,6 +34,15 @@ export default function Home() {
   const counts = useCardsStore((s) => s.counts);
   const router = useRouter();
   const [menuDeck, setMenuDeck] = useState<Deck | null>(null);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const { busy: importing, importFromFile, importFromText } = useDeckImport();
+
+  const addMenuItems: ActionSheetItem[] = [
+    { label: "Create a new deck", onPress: () => router.push("/deck/new") },
+    { label: "Import deck from file…", onPress: () => importFromFile() },
+    { label: "Import deck from text…", onPress: () => setPasteOpen(true) },
+  ];
 
   const menuItems: ActionSheetItem[] = menuDeck
     ? [
@@ -100,9 +111,10 @@ export default function Home() {
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Create new deck"
-            style={[styles.plus, { backgroundColor: theme.colors.accentPrimary }]}
-            onPress={() => router.push("/deck/new")}
+            accessibilityLabel="Add deck"
+            disabled={importing}
+            style={[styles.plus, { backgroundColor: theme.colors.accentPrimary, opacity: importing ? 0.5 : 1 }]}
+            onPress={() => setAddMenuOpen(true)}
           >
             <Text style={[styles.plusGlyph, { color: theme.colors.bgCard }]}>+</Text>
           </Pressable>
@@ -136,6 +148,18 @@ export default function Home() {
         title={menuDeck?.name}
         items={menuItems}
         onClose={() => setMenuDeck(null)}
+      />
+      <ActionSheet
+        visible={addMenuOpen}
+        title="Add a deck"
+        items={addMenuItems}
+        onClose={() => setAddMenuOpen(false)}
+      />
+      <PasteImportModal
+        visible={pasteOpen}
+        busy={importing}
+        onClose={() => setPasteOpen(false)}
+        onImport={importFromText}
       />
     </SafeAreaView>
   );
