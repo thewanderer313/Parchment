@@ -1,19 +1,23 @@
-import React from "react";
+import React, { useState } from "react";
 import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useCardsStore } from "@/store/cardsStore";
 import { useTheme } from "@/theme/ThemeProvider";
 import { CardEditor, type CardEditorValues } from "@/components/CardEditor";
+import { useUnsavedChangesGuard } from "@/lib/useUnsavedChangesGuard";
 
 export default function NewCardScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const create = useCardsStore((s) => s.create);
+  const [dirty, setDirty] = useState(false);
+  const { skipOnce } = useUnsavedChangesGuard(dirty);
 
   const handleSubmit = async (values: CardEditorValues) => {
     if (!id) return;
     await create(id, values);
+    skipOnce();
     router.back();
   };
 
@@ -24,6 +28,7 @@ export default function NewCardScreen() {
         initial={{ frontText: "", frontImages: [], backText: "", backImages: [] }}
         onSubmit={handleSubmit}
         onCancel={() => router.back()}
+        onDirtyChange={setDirty}
       />
     </SafeAreaView>
   );

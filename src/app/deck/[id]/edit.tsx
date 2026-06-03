@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, View } from "react-native";
@@ -6,6 +6,7 @@ import { useDecksStore } from "@/store/decksStore";
 import { useTheme } from "@/theme/ThemeProvider";
 import { FONT_SERIF } from "@/theme/fonts";
 import { DeckEditor, type DeckEditorValues } from "@/components/DeckEditor";
+import { useUnsavedChangesGuard } from "@/lib/useUnsavedChangesGuard";
 
 export default function EditDeckScreen() {
   const router = useRouter();
@@ -13,10 +14,13 @@ export default function EditDeckScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const deck = useDecksStore((s) => s.decks.find((d) => d.id === id));
   const update = useDecksStore((s) => s.update);
+  const [dirty, setDirty] = useState(false);
+  const { skipOnce } = useUnsavedChangesGuard(dirty);
 
   const handleSubmit = async (values: DeckEditorValues) => {
     if (!deck) return;
     await update(deck.id, values);
+    skipOnce();
     router.back();
   };
 
@@ -51,6 +55,7 @@ export default function EditDeckScreen() {
         }}
         onSubmit={handleSubmit}
         onCancel={() => router.back()}
+        onDirtyChange={setDirty}
       />
     </SafeAreaView>
   );

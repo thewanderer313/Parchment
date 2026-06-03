@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -25,6 +25,7 @@ interface Props {
   initial: DeckEditorValues;
   onSubmit: (values: DeckEditorValues) => void;
   onCancel: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 function trimToNull(s: string): string | null {
@@ -32,7 +33,7 @@ function trimToNull(s: string): string | null {
   return trimmed.length === 0 ? null : trimmed;
 }
 
-export function DeckEditor({ initial, onSubmit, onCancel }: Props) {
+export function DeckEditor({ initial, onSubmit, onCancel, onDirtyChange }: Props) {
   const { theme } = useTheme();
   const [name, setName] = useState(initial.name);
   const [emoji, setEmoji] = useState(initial.emoji ?? "");
@@ -40,6 +41,19 @@ export function DeckEditor({ initial, onSubmit, onCancel }: Props) {
   const [coverImage, setCoverImage] = useState<string | null>(initial.coverImage);
   const [showNameError, setShowNameError] = useState(false);
   const [pickingCover, setPickingCover] = useState(false);
+
+  const isDirty = useMemo(
+    () =>
+      name.trim() !== initial.name ||
+      trimToNull(emoji) !== initial.emoji ||
+      trimToNull(description) !== initial.description ||
+      coverImage !== initial.coverImage,
+    [name, emoji, description, coverImage, initial]
+  );
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   const submit = () => {
     if (name.trim().length === 0) {

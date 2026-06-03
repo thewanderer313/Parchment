@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View, Text, TextInput, Pressable, StyleSheet, ScrollView,
   KeyboardAvoidingView, Platform, Image,
@@ -19,11 +19,16 @@ interface Props {
   initial: CardEditorValues;
   onSubmit: (values: CardEditorValues) => void;
   onCancel: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 type Side = "front" | "back";
 
-export function CardEditor({ initial, onSubmit, onCancel }: Props) {
+function arrayEqual(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((x, i) => x === b[i]);
+}
+
+export function CardEditor({ initial, onSubmit, onCancel, onDirtyChange }: Props) {
   const { theme } = useTheme();
   const [active, setActive] = useState<Side>("front");
   const [frontText, setFrontText] = useState(initial.frontText);
@@ -31,6 +36,19 @@ export function CardEditor({ initial, onSubmit, onCancel }: Props) {
   const [backText, setBackText] = useState(initial.backText);
   const [backImages, setBackImages] = useState<string[]>(initial.backImages);
   const [picking, setPicking] = useState(false);
+
+  const isDirty = useMemo(
+    () =>
+      frontText !== initial.frontText ||
+      backText !== initial.backText ||
+      !arrayEqual(frontImages, initial.frontImages) ||
+      !arrayEqual(backImages, initial.backImages),
+    [frontText, frontImages, backText, backImages, initial]
+  );
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   const text = active === "front" ? frontText : backText;
   const setText = active === "front" ? setFrontText : setBackText;

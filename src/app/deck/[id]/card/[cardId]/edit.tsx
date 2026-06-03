@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, View } from "react-native";
@@ -6,6 +6,7 @@ import { useCardsStore } from "@/store/cardsStore";
 import { useTheme } from "@/theme/ThemeProvider";
 import { FONT_SERIF } from "@/theme/fonts";
 import { CardEditor, type CardEditorValues } from "@/components/CardEditor";
+import { useUnsavedChangesGuard } from "@/lib/useUnsavedChangesGuard";
 
 export default function EditCardScreen() {
   const router = useRouter();
@@ -13,10 +14,13 @@ export default function EditCardScreen() {
   const { id, cardId } = useLocalSearchParams<{ id: string; cardId: string }>();
   const card = useCardsStore((s) => s.cardsByDeck[id ?? ""]?.find((c) => c.id === cardId));
   const update = useCardsStore((s) => s.update);
+  const [dirty, setDirty] = useState(false);
+  const { skipOnce } = useUnsavedChangesGuard(dirty);
 
   const handleSubmit = async (values: CardEditorValues) => {
     if (!card) return;
     await update(card.id, values);
+    skipOnce();
     router.back();
   };
 
@@ -46,6 +50,7 @@ export default function EditCardScreen() {
         }}
         onSubmit={handleSubmit}
         onCancel={() => router.back()}
+        onDirtyChange={setDirty}
       />
     </SafeAreaView>
   );
