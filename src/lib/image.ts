@@ -33,7 +33,8 @@ export async function pickAndStoreImage(prefix?: string): Promise<PickedImage | 
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted) return null;
   const picked = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    // SDK 56 deprecated MediaTypeOptions.Images in favor of the array form.
+    mediaTypes: ["images"],
     allowsMultipleSelection: false,
     quality: 1,
   });

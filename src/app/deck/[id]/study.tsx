@@ -21,14 +21,25 @@ function shuffleArray<T>(arr: T[]): T[] {
   return a;
 }
 
+const EMPTY_CARDS: never[] = [];
+
 export default function StudyScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const deck = useDecksStore((s) => s.decks.find((d) => d.id === id));
-  const cards = useCardsStore((s) => s.cardsByDeck[id ?? ""] ?? []);
+  // Use a stable empty-array reference to avoid re-deriving orderedCards on
+  // every render when the deck has no loaded entry yet.
+  const cards = useCardsStore((s) => s.cardsByDeck[id ?? ""] ?? EMPTY_CARDS);
+  const loadByDeck = useCardsStore((s) => s.loadByDeck);
   const reduce = useReduceMotion();
   const { width } = useWindowDimensions();
+
+  // If the user opens /study via a deep link (no preceding Deck Detail mount),
+  // cards won't be in the store cache. Fire the load defensively.
+  useEffect(() => {
+    if (id) loadByDeck(id);
+  }, [id, loadByDeck]);
 
   const [shuffle, setShuffle] = useState<boolean>(deck?.shuffleEnabled ?? false);
   const orderedCards = useMemo(() => (shuffle ? shuffleArray(cards) : cards), [cards, shuffle]);
