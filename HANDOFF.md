@@ -1,89 +1,94 @@
 # Parchment — Session Handoff
 
-**Last updated:** 2026-06-03
-**Branch:** `master` (HEAD: `6b6bfb4`)
-**Test status:** 80/80 pass, `tsc --noEmit` clean, `npx expo export --platform android` bundles cleanly
+**Last updated:** 2026-06-03 (later in the day)
+**Branch:** `master` (HEAD: `259a97d`)
+**Test status:** 86/86 unit tests pass · `tsc --noEmit` clean · `npx expo export --platform android` produces a 4.5 MB Hermes bundle
 
 ---
 
 ## TL;DR for the next Claude
 
-Parchment is a complete v1 cross-platform flashcard app (Expo SDK 56, React Native, TypeScript). All five planned chunks are merged to `master`. The codebase compiles, tests pass, and the production bundle builds.
+Parchment is a feature-complete v1 cross-platform flashcard app (Expo SDK 56, React Native, TypeScript). All five plan-level features are shipped (foundation, deck CRUD, card CRUD + Markdown, study mode, share + settings) plus a significant amount of UX polish on top. The user has been iterating successfully on a dev-client build via `expo start --tunnel`; they're about to fire a fresh EAS preview build that will include everything in master.
 
-**We just diagnosed and fixed a critical render-loop crash** in the Deck Detail screen via a live dev-client session. The fix is committed (`6b6bfb4`) but the user's installed EAS preview APK was built before the fix — it still has the crash. They need to either keep validating with the dev client over the tunnel OR run one more EAS preview build to ship the patched APK.
+**What's most likely to need attention in the next session:**
 
-**The user has limited EAS build slots remaining this month.** Do not burn a slot casually.
+- **On-device smoke test of the new preview APK.** The user has been validating each change live via the dev client, but a fresh production-pathway build deserves a quick walkthrough.
+- **Decisions about post-v1 direction.** The remaining proposed improvements (auto-save drafts, daily backup snapshot, screen-level integration tests, deck sort/search/bulk select) were laid out and the user said "I don't really see the necessity of the rest of the options just yet." They may want any of these later, or may want to start something new (iOS publish, App Store / Play Store submission, additional Markdown features, etc.).
+
+The user has limited EAS Build slots remaining this month. **Do not burn slots casually** — the dev client + tunnel setup already gives them unlimited JS-only iteration.
 
 ---
 
-## What's built (Plans 01–04, all merged to master)
+## What's built (Plans 01–04 + significant post-v1 polish)
+
+### Plans 01–04 (all merged to master)
 
 | Plan | Scope | Merge SHA |
 |---|---|---|
 | 01 Foundation | Themed Expo app, SQLite v1 schema, Zustand stores, Home grid + EmptyDeckList | `ff3891e` |
-| 02a Deck CRUD | DeckTile, DeckEditor with cover image, deck CRUD via store + long-press menu | `cef5bab` |
+| 02a Deck CRUD | DeckTile, DeckEditor with cover image, deck CRUD store + long-press menu | `cef5bab` |
 | 02b Card CRUD | cardsStore, MarkdownText (react-native-marked), CardRow, Deck Detail, CardEditor with tabbed Markdown + live preview | `093c9f5` |
-| 03 Study Mode | FlipCard (Reanimated 3D rotate 380ms), swipe/pan gestures, shuffle, windowed dot progress, Reduce Motion support | `b73c53f` |
-| 04 Share + Settings | Export/import `.parchment` JSON with base64 images, per-deck share via OS share sheet, /settings with theme toggle + export/import + about | `bd065ec` |
+| 03 Study Mode | FlipCard (Reanimated 3D rotation 380 ms), swipe/pan gestures, shuffle, windowed dot progress, Reduce Motion support | `b73c53f` |
+| 04 Share + Settings | Export/import `.parchment.v1` JSON with base64 images, per-deck share via OS share sheet, /settings with theme toggle + export/import + about | `bd065ec` |
+
+### Post-v1 fixes and polish (the long tail of the current session)
+
+Listed newest first — the EAS build the user is about to make contains all of these:
+
+| SHA | What |
+|---|---|
+| `259a97d` | Composer: "Copy / show JSON" button so you can move the whole deck as text rather than as a file |
+| `0b4df96` | Home: + button now opens "Add a deck" with **Create / Import from file / Import from text** (consolidates the import button into +) |
+| `7601c0f` | Settings: "Import deck from text…" — paste-JSON modal that bypasses the file picker entirely |
+| `1b27163` | Card Editor: 7-button toolbar (B / I / H / • / 1. / `</>` / 🔗) that inserts at the cursor instead of appending to the end |
+| `7c4c1f0` | `tools/parchment-composer.html` — single-file desktop composer for writing decks with a real keyboard, exports `parchment.v1` JSON |
+| `2f84d8c` | Share + import hardening: drop `.parchment.json` double extension → just `.json`, explicit UTF-8 reads, BOM-tolerant parser, friendlier errors |
+| `fd90184` | Drag-to-reorder cards via a ≡ grip handle on each card row in Deck Detail (uses react-native-draggable-flatlist) |
+| `aaa573b` | "Discard changes?" prompt when leaving a dirty deck or card editor (`useUnsavedChangesGuard` hook) |
+| `0fd91e9` | Per-deck shuffle now persists via `decksStore.setShuffleEnabled` |
+| `0d9bd95` | Deck Detail header gains a ⋮ menu button (Edit / Share / Delete from inside the deck) |
+| `63dab63` | Custom bottom-sheet `ActionSheet` component replacing `Alert.alert` for menus — fixes Android's 4-button cap that was clipping Delete |
+| `6b6bfb4` | Render-loop fix in Deck Detail: stable `EMPTY_CARDS` reference for the cards selector (this was THE crash bug the previous preview APK had) |
+| `4e64928` | Top-level `ErrorBoundary` so JS errors show on screen instead of crashing the app silently |
+| `53afa0f` | `babel.config.js` with `react-native-worklets/plugin` (Reanimated v4 requirement); `expo-image-picker` + `expo-document-picker` config plugins; try/catch on `cardsStore` loads |
+| `4ef75f9` | `ImagePicker.MediaTypeOptions.Images` → `["images"]` (SDK 56 modernization); Study screen defensive `loadByDeck` |
+| `878bbd0` | **Critical SDK 56 fix:** switched all `expo-file-system` imports to `expo-file-system/legacy` (the main entry's shims throw at runtime) |
+| `d7baea5` | Install `react-native-svg` peer dep for `react-native-marked` |
 
 ---
 
-## Where we are right now in the debugging conversation
+## Current state of import/export
 
-1. User's first EAS preview build failed at the JS bundle phase — missing `react-native-svg` peer dep for `react-native-marked`. **Fixed** (committed `d7baea5`).
-2. Second EAS preview build succeeded and installed on the user's Android phone. App ran, user could:
-   - Change the theme ✓
-   - Create decks ✓
-   - **Crashed silently when opening a deck**
-3. I made several blind hardening passes ahead of any diagnostic data:
-   - `878bbd0` — switched all `expo-file-system` imports from the main entry to `expo-file-system/legacy` (CRITICAL — SDK 56's main entry calls throw at runtime)
-   - `53afa0f` — added `babel.config.js` with `react-native-worklets/plugin` (required for Reanimated 4), dropped `reactCompiler: true`, added `expo-image-picker` + `expo-document-picker` config plugins, wrapped `cardsStore.loadByDeck` + `loadCounts` in try/catch
-   - `4ef75f9` — `ImagePicker.MediaTypeOptions.Images` → `["images"]` (SDK 56 modernization), Study screen defensive `loadByDeck` + stable EMPTY_CARDS ref
-   - `4e64928` — top-level `ErrorBoundary` (`src/components/ErrorBoundary.tsx`) that displays the error+stack on screen instead of letting the app close silently
-4. The user could not capture a stack trace via USB (USB port broken) and was on a different network from the computer (remoted via Parsec). After fighting with ngrok auth (their global `ngrok` is an ancient v2.3.41 that doesn't recognize `config`), we eventually got the dev client + tunnel working via:
-   - User signed up for free ngrok, persisted `NGROK_AUTHTOKEN` via `setx` to Windows user env
-   - One EAS development build (~1 slot) installed on phone
-   - `npx expo start --tunnel` with `--dev-client` mode
-5. **The actual bug surfaced clearly via ErrorBoundary:**
-   ```
-   The result of getSnapshot should be cached to avoid an infinite loop
-   useStore (zustand/react.js)
-   DeckDetailScreen (src/app/deck/[id]/index.tsx)
-   …Maximum update depth exceeded.
-   ```
-   `src/app/deck/[id]/index.tsx` had `const cards = useCardsStore((s) => s.cardsByDeck[id ?? ""] ?? []);` — the inline `?? []` creates a brand-new empty array reference every render. Zustand's `useSyncExternalStore` contract requires `getSnapshot` to return a stable value when state is unchanged; the new array fails that check → React schedules another render → selector returns yet another new `[]` → infinite loop → React's "Maximum update depth exceeded" → on Android release, silent JS-engine exit.
-6. **Fix committed at `6b6bfb4`:** hoisted `EMPTY_CARDS` to module scope. The Study screen got the same treatment in an earlier audit pass (had the same bug there); Deck Detail was missed.
-7. User left, asked for this handoff doc, will pick up with a fresh Claude session.
+This bit has its own complexity worth flagging:
+
+- **Export full library** lives in Settings → "Export library…"
+- **Share single deck** lives in deck long-press menu and Deck Detail ⋮ menu → Share
+- **Import** has **two paths** because the file-picker chain has been flaky on Android with files received via messaging:
+  - **From file** (Settings or Home + → "Import deck from file…") — uses `expo-document-picker` + `expo-file-system/legacy`
+  - **From text** (Settings or Home + → "Import deck from text…") — pastes JSON into a modal with a monospace TextInput, bypasses file system entirely
+
+The user has hit "couldn't import" errors with the file path that we suspect are environmental (URI permissions, MIME types, email-download path). The paste path is the workaround. The desktop composer's "Copy / show JSON" button is designed to round-trip with paste-import perfectly.
+
+Shared logic lives in `src/lib/useDeckImport.ts` (hook exposing `importFromFile`, `importFromText`, `busy`) and `src/components/PasteImportModal.tsx` (themed modal). Both Settings and Home consume both.
 
 ---
 
-## What the next Claude should do first
+## Desktop composer (`tools/parchment-composer.html`)
 
-1. **Ask the user the current state of the tunnel session.** It may have been closed; if so, they re-open with `npx expo start --tunnel` (the env var is persisted, no need to set anything else). The dev client APK on their phone connects via `exp+parchment://expo-development-client/?url=…`.
-2. **Have them reload the JS** (shake phone → Reload, or `R` twice in Metro). The fix at `6b6bfb4` should be picked up automatically. Then test the deck-open flow.
-3. **If Deck Detail now works, walk them through a full smoke test** (see checklist below). Fix any further issues found via the dev client — every JS fix is free now, only a new EAS build costs a slot.
-4. **When the user is confident the dev client behavior is solid,** suggest one final `npx eas build --profile preview --platform android` to ship a clean preview APK that includes all fixes. That's the production-ready artifact.
+Separate from the app — a single 28 KB self-contained HTML file. No install, no internet required, no dependencies. Lives in `tools/` for organization.
 
-**Do NOT re-run my earlier diagnostics or guess at native-layer causes.** The root bug is found and fixed. Trust it.
+Features:
+- Forest-on-Parchment theme matching the app
+- Deck metadata (name, emoji, description, cover image)
+- Any number of cards with Front + Back Markdown
+- Inline live Markdown preview per side
+- Full toolbar per side (B, I, H, •, 1., `</>`, 🔗)
+- One image per card side (base64-inlined)
+- Save / Load draft via browser localStorage
+- "Download .json" writes a file
+- "Copy / show JSON" reveals a textarea + clipboard-copy button — the round-trip partner for the app's paste-import
 
----
-
-## Smoke test checklist
-
-When the dev client (or a fresh preview build) is live on the phone:
-
-1. **Boot** — App opens to parchment-cream Home, "Decks" header, italic "Your library is empty" subtitle, 📚 + "Tap + to create your first deck" body
-2. **Create deck** — Tap + → "New deck" → enter Name, Emoji, Description → Save → tile appears
-3. **Open deck (the bug)** — Tap tile → Deck Detail with emoji + name header, Study (disabled), + Add card; 🎴 empty placeholder. **Should no longer crash.**
-4. **Create card** — Tap + Add card → Card Editor with Front/Back tabs, Markdown TextInput, syntax toolbar (B/I/•/`</>`), live preview below; type **bold** on Front, "answer" on Back → Save → returns to Deck Detail with card row
-5. **Study mode** — Tap Study (now enabled) → full-screen card, tap to flip with 3D animation, swipe horizontally between cards, tap ⇄ to shuffle, × or back to exit
-6. **Edit / delete card** — Long-press a card row → Edit / Delete sheet → confirm Delete clears it
-7. **Edit / delete / share deck** — Long-press deck tile (from Home) → Edit / Share / Delete sheet → Share → OS share sheet with a `.parchment.json` file
-8. **Cover image** — Edit deck → Choose cover image → grant photo permission → pick photo → preview → Save → tile now has the photo
-9. **Persistence** — Force-close → reopen → everything intact
-10. **Dark mode** — Phone Settings → dark mode → app re-renders dark palette without restart
-11. **Settings** — Home → ⚙ → Theme segment toggle works (System/Light/Dark), Export library opens share sheet, Import library opens file picker
-12. **Reduce Motion** — Accessibility setting on → flip becomes cross-fade, swipes instant
+Open by double-clicking the HTML file. Works in any modern browser.
 
 ---
 
@@ -92,70 +97,99 @@ When the dev client (or a fresh preview build) is live on the phone:
 | What | State |
 |---|---|
 | Expo SDK | 56 (latest stable) |
-| EAS account | `thewanderer313` (Expo free tier, monthly quota; user has limited slots remaining) |
-| Project EAS ID | `b22e96f9-f836-4b0f-94aa-5dfe5a8b7be2` |
-| ngrok auth token | Persisted as Windows user env var `NGROK_AUTHTOKEN` via `setx` (so future tunnels Just Work) |
+| EAS account | `thewanderer313` (free tier; **limited monthly slots**) |
+| EAS project ID | `b22e96f9-f836-4b0f-94aa-5dfe5a8b7be2` |
+| ngrok auth token | Persisted as Windows user env var `NGROK_AUTHTOKEN` via `setx` |
 | Computer | Windows 11, accessed remotely via Parsec |
-| Phone | Android, USB port broken, Wi-Fi only |
-| Tunnel | `npx expo start --tunnel` works once the env var is set; phone connects via `exp+parchment://…` URL |
-| Branch strategy | Each plan was on its own `plan-XX-…` branch, merged with `--no-ff` to master; `master` is the only branch you should care about now |
+| Phone | Android (USB port broken — Wi-Fi tunnel only) |
+| Tunnel | `npx expo start --tunnel` works once the env var is set |
+| Branch strategy | Each plan was a feature branch; current `master` is the only branch to care about |
 
 ---
 
 ## Key files for orientation
 
-- `docs/superpowers/specs/2026-06-02-parchment-flashcard-app-design.md` — design spec, brainstormed and approved at the start of the project
+### Routes (`src/app/`)
+- `_layout.tsx` — root: theme provider, hydration with cancel guard, top-level `ErrorBoundary`
+- `index.tsx` — Home (deck grid + Settings + + button with "Add a deck" sheet)
+- `deck/[id]/index.tsx` — Deck Detail (header with ⋮ menu, Study / Add card buttons, draggable card list)
+- `deck/[id]/study.tsx` — Study Mode (FlipCard + Pan gestures + persisted shuffle)
+- `deck/[id]/edit.tsx` — Deck Editor route (uses `useUnsavedChangesGuard`)
+- `deck/new.tsx` — New deck route
+- `deck/[id]/card/[cardId]/edit.tsx` — Card Editor route
+- `deck/[id]/card/new.tsx` — New card route
+- `settings.tsx` — Theme toggle + Export library + Import (file + text) + About
+
+### Components (`src/components/`)
+- `DeckTile.tsx` — Home grid item
+- `DeckEditor.tsx` — Deck form with cover image picker; emits `onDirtyChange`
+- `CardRow.tsx` — Deck Detail item with optional drag grip
+- `CardEditor.tsx` — Tabbed Markdown editor (Front/Back), 7-button cursor-aware toolbar, image picker; emits `onDirtyChange`
+- `MarkdownText.tsx` — Wraps `react-native-marked` with our theme; empty state placeholder
+- `FlipCard.tsx` — Reanimated 3D rotation
+- `EmptyDeckList.tsx` — Home empty state
+- `ActionSheet.tsx` — Custom bottom-sheet replacing `Alert.alert` for menus
+- `PasteImportModal.tsx` — Shared modal for paste-import (used by Home + Settings)
+- `ErrorBoundary.tsx` — Top-level diagnostic that shows JS errors on screen
+
+### Stores (`src/store/`)
+- `decksStore.ts` — load / create / update / delete / reorder / setShuffleEnabled
+- `cardsStore.ts` — loadByDeck / loadCounts / create / update / delete / reorder
+- `settingsStore.ts` — themeMode persistence
+
+### Libraries (`src/lib/`)
+- `uuid.ts` — wraps `expo-crypto.randomUUID`
+- `image.ts` — pickAndStoreImage (pick → resize 1600px → JPEG 0.85 → save)
+- `export.ts` — exportLibrary / exportDeck → `parchment.v1` JSON
+- `import.ts` — parseAndPlanImport / applyImport with collision resolution
+- `share.ts` — writeAndShare / pickImportFile (`.json` extension, UTF-8)
+- `useDeckImport.ts` — hook exposing both file and text import paths
+- `useUnsavedChangesGuard.ts` — discard-changes prompt on nav back
+- `useReduceMotion.ts` — subscribes to AccessibilityInfo
+
+### SQLite (`src/db/`)
+- `schema.ts` — v1 schema (decks / cards / settings tables)
+- `migrations.ts` — idempotent migration runner using transactions
+- `client.ts` — singleton `getDatabase()` with `PRAGMA foreign_keys = ON`
+
+### Theme (`src/theme/`)
+- `palette.ts` — Forest on Parchment light + dark + `THEME_SELECTIONS`
+- `ThemeProvider.tsx` — Provider + `useTheme` hook
+- `fonts.ts` — `FONT_SERIF = "Georgia"` (single source of truth)
+
+### Desktop tool
+- `tools/parchment-composer.html` — standalone composer (see above)
+
+### Docs
+- `docs/superpowers/specs/2026-06-02-parchment-flashcard-app-design.md` — original design spec
 - `docs/superpowers/plans/2026-06-02-parchment-{01-foundation,02a-deck-crud,02b-card-crud,03-study-mode,04-share-and-settings}.md` — five plan documents
-- `src/app/_layout.tsx` — root: theme provider, hydration, top-level ErrorBoundary
-- `src/app/index.tsx` — Home (deck grid + gear + create)
-- `src/app/deck/[id]/index.tsx` — Deck Detail (the bug lived here, now fixed)
-- `src/app/deck/[id]/study.tsx` — Study mode (FlipCard + Pan gestures)
-- `src/app/settings.tsx` — Settings (theme + export/import)
-- `src/components/{DeckTile,DeckEditor,CardRow,CardEditor,MarkdownText,FlipCard,EmptyDeckList,ErrorBoundary}.tsx` — components
-- `src/store/{decksStore,cardsStore,settingsStore}.ts` — Zustand stores
-- `src/lib/{uuid,image,export,import,share,useReduceMotion}.ts` — utilities
-- `src/db/{schema,migrations,client}.ts` — SQLite
-- `src/theme/{palette,fonts,ThemeProvider}.ts(x)` — theme system
+- `HANDOFF.md` — this file
 
 ---
 
-## Intentionally deferred (do not implement unless user asks)
+## Things explicitly deferred or skipped
 
-- App icon stays as Expo default (user explicitly said they like it)
-- Per-deck shuffle preference persistence (currently component-state only; resets when leaving Study)
-- Drag-to-reorder UI for decks and cards (long-press menu has Edit/Delete only)
-- iOS build / TestFlight / App Store submission
-- README content
-- Cloud-relay share links (deferred from the original spec; only file-based sharing is in)
+The user has either explicitly OK'd these as out-of-scope or chosen not to pursue them right now:
+
+- **Drag-to-reorder for decks on Home.** `react-native-draggable-flatlist` doesn't support `numColumns` and Home's 2-column grid is part of the spec. Would need either a single-column UX redesign, a different library, or a dedicated "Reorder decks" screen.
+- **App icon and splash artwork.** User explicitly likes the default Expo icon. Don't change without asking.
+- **iOS build / TestFlight / App Store submission.** Not requested.
+- **README content.** No request yet.
+- **Cloud-relay share links.** Brainstormed in the spec as Option B but the user picked Option A (file-based) for v1.
+- **Robustness improvements.** Auto-save drafts, daily backup snapshot, screen-level integration tests. The user said "I don't really see the necessity of the rest of the options just yet."
+- **Quality-of-life improvements.** Deck sort, search, bulk select. Same — deferred for now.
 
 ---
 
 ## Hard-won knowledge — do NOT do these
 
-1. **Don't import from `expo-file-system` main entry.** All path-based methods (`readAsStringAsync`, `writeAsStringAsync`, `documentDirectory`, `copyAsync`, `deleteAsync`, `getInfoAsync`, `makeDirectoryAsync`, `EncodingType`) throw at runtime in SDK 56. Use `expo-file-system/legacy` for everything string-path. We're committed to this and it's working — don't try to "modernize" it back.
+1. **Don't import from `expo-file-system` main entry.** All path-based methods (`readAsStringAsync`, `writeAsStringAsync`, `documentDirectory`, `copyAsync`, `deleteAsync`, `getInfoAsync`, `makeDirectoryAsync`, `EncodingType`) throw at runtime in SDK 56. Use `expo-file-system/legacy` for everything string-path. We're committed to this — don't try to "modernize" it back.
 2. **Don't re-enable React Compiler.** `"reactCompiler": true` in `app.json` experiments is unstable with Reanimated v4 release builds. We removed it.
-3. **Don't use inline `?? []` or `?? {}` in Zustand selectors.** Hoist to a module-level constant (e.g., `EMPTY_CARDS`) to keep references stable. This was THE bug. Same applies to any future store consumer.
-4. **Don't burn EAS builds without strong justification.** The user is rate-limited and prefers JS-only iteration via the dev client + tunnel until the next build is genuinely needed.
-5. **Don't try to remove the `as never` casts on route paths.** Expo's `.expo/types/router.d.ts` is a build artifact regenerated by the dev server; it's chronically stale. Casts are runtime-safe. Leave them.
-
----
-
-## Recent commits (most recent first)
-
-```
-6b6bfb4 fix(critical): stable EMPTY_CARDS reference in Deck Detail to prevent render loop
-4e64928 diag: top-level ErrorBoundary so silent crashes surface on screen
-53afa0f fix(critical): babel reanimated plugin + image-picker/document-picker plugins
-4ef75f9 chore: audit fixes — ImagePicker SDK 56 + Study screen safety
-878bbd0 fix(critical): switch from expo-file-system to expo-file-system/legacy
-d7baea5 fix(critical): install react-native-svg peer dep for react-native-marked
-471f680 chore: register expo-sharing plugin auto-added by expo install (Plan 04)
-bd065ec Plan 04 (Share + Settings): merge plan-04-share-and-settings into master
-b73c53f Plan 03 (Study Mode): merge plan-03-study-mode into master
-093c9f5 Plan 02b (Card CRUD): merge plan-02b-card-crud into master
-cef5bab Plan 02a (Deck CRUD): merge plan-02a-deck-crud into master
-ff3891e Plan 01 (Foundation): merge plan-01-foundation into master
-```
+3. **Don't use inline `?? []` or `?? {}` in Zustand selectors.** Hoist to a module-level constant (`EMPTY_CARDS`, etc.) to keep references stable. This was a critical crash bug (`6b6bfb4`).
+4. **Don't use `Alert.alert` with 4 buttons.** Android's native AlertDialog has a hard cap of 3 buttons. The 4th is silently dropped. Use the custom `ActionSheet` component (`63dab63`).
+5. **Don't burn EAS builds without strong justification.** The user is rate-limited and prefers JS-only iteration via the dev client + tunnel until a build is genuinely needed.
+6. **Don't try to remove the `as never` casts on route paths.** Expo's `.expo/types/router.d.ts` is a build artifact regenerated by the dev server; it's chronically stale. Casts are runtime-safe.
+7. **Don't append toolbar syntax to the end of the editor.** Use the per-side `selection` state in `CardEditor.tsx` to insert at the cursor.
 
 ---
 
@@ -164,4 +198,18 @@ ff3891e Plan 01 (Foundation): merge plan-01-foundation into master
 `C:/Users/Ryank/.claude/projects/C--Users-Ryank-Desktop-Vibe-Coding-Flashcard/memory/`
 
 - `user_expo.md` — user has prior Expo experience but wants explicit CLI walkthroughs
-- `project_build_quota.md` (added with this handoff) — user is rate-limited on EAS builds this month; prefer dev client + tunnel for iteration
+- `project_build_quota.md` — user is rate-limited on EAS builds; prefer dev client + tunnel for iteration
+
+---
+
+## Pre-build sanity check that just passed
+
+```
+git status                  → clean
+git log --oneline -10       → all commits in master
+npm test                    → 86 / 86 passing in 16 suites
+npx tsc --noEmit            → 0 errors
+npx expo export --platform android → 4.5 MB Hermes bundle, no warnings
+```
+
+The next preview build (`npx eas build --profile preview --platform android`) should ship cleanly.
