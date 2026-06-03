@@ -318,7 +318,23 @@
   </div>
 
   <div class="bottom-actions">
+    <button class="btn ghost" id="showJsonBtn">Copy / show JSON</button>
     <button class="btn ghost" id="downloadBtn">Download .json</button>
+  </div>
+
+  <div class="panel hidden" id="jsonOutputPanel">
+    <h2>JSON output</h2>
+    <p class="hint" style="font-size: 13px; margin-top: 0; margin-bottom: 10px;">
+      Copy the text below (or tap "Copy to clipboard") and paste it into
+      <strong>+ → Import deck from text…</strong> in the Parchment app on your phone.
+      You can also paste it into an email or text message to send to someone else.
+    </p>
+    <textarea id="jsonOutput" readonly rows="10"
+      style="width:100%; font-family: var(--mono); font-size: 11px; min-height: 220px;"></textarea>
+    <div style="display: flex; gap: 8px; margin-top: 10px;">
+      <button class="btn" id="copyJsonBtn">Copy to clipboard</button>
+      <button class="btn ghost" id="hideJsonBtn">Hide</button>
+    </div>
   </div>
 
 </div>
@@ -611,10 +627,10 @@ function clearAll() {
 }
 
 // ---------- Import / Export .json ----------
-function downloadJson() {
+function buildJson() {
   if (!state.deck.name.trim()) {
-    setStatus("Deck name is required before downloading.");
-    return;
+    setStatus("Deck name is required first.");
+    return null;
   }
   const out = {
     format: "parchment.v1",
@@ -636,7 +652,13 @@ function downloadJson() {
       }),
     }],
   };
-  const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
+  return JSON.stringify(out, null, 2);
+}
+
+function downloadJson() {
+  const json = buildJson();
+  if (!json) return;
+  const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const safeName = state.deck.name.replace(/[^a-z0-9_-]+/gi, "_").slice(0, 40) || "parchment";
   const a = document.createElement("a");
@@ -647,6 +669,57 @@ function downloadJson() {
   document.body.removeChild(a);
   setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
   setStatus("Downloaded.");
+}
+
+function showJson() {
+  const json = buildJson();
+  if (!json) return;
+  const ta = $("jsonOutput");
+  ta.value = json;
+  $("jsonOutputPanel").classList.remove("hidden");
+  // Scroll into view and pre-select so the user can also do Ctrl-A / Cmd-A
+  $("jsonOutputPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+  setTimeout(function () { ta.focus(); ta.select(); }, 200);
+  setStatus("");
+}
+
+function copyJson() {
+  const ta = $("jsonOutput");
+  if (!ta.value) {
+    setStatus("Nothing to copy — click \"Copy / show JSON\" first.");
+    return;
+  }
+  ta.focus();
+  ta.select();
+  // Try the modern Clipboard API first, fall back to execCommand for older
+  // browsers or insecure contexts (e.g., file:// origins on some setups).
+  try {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      navigator.clipboard.writeText(ta.value).then(function () {
+        setStatus("Copied to clipboard.");
+      }).catch(function () {
+        // Fall through to execCommand
+        if (document.execCommand("copy")) {
+          setStatus("Copied to clipboard.");
+        } else {
+          setStatus("Couldn't copy — select the text and copy manually.");
+        }
+      });
+    } else {
+      if (document.execCommand("copy")) {
+        setStatus("Copied to clipboard.");
+      } else {
+        setStatus("Couldn't copy — select the text and copy manually.");
+      }
+    }
+  } catch (e) {
+    setStatus("Couldn't copy: " + (e.message || e));
+  }
+}
+
+function hideJson() {
+  $("jsonOutputPanel").classList.add("hidden");
+  $("jsonOutput").value = "";
 }
 
 function loadJsonFile(file) {
@@ -733,6 +806,9 @@ document.addEventListener("click", function (e) {
     case "loadDraftBtn": loadDraft(); break;
     case "clearBtn": clearAll(); break;
     case "downloadBtn": downloadJson(); break;
+    case "showJsonBtn": showJson(); break;
+    case "copyJsonBtn": copyJson(); break;
+    case "hideJsonBtn": hideJson(); break;
     case "coverBtn": chooseCover(); break;
     case "removeCoverBtn": removeCover(); break;
     case "loadJsonBtn": $("jsonInput").click(); break;
