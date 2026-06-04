@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, Pressable, StyleSheet, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
@@ -26,7 +26,7 @@ const EMPTY_CARDS: never[] = [];
 export default function StudyScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, startCardId } = useLocalSearchParams<{ id: string; startCardId?: string }>();
   const deck = useDecksStore((s) => s.decks.find((d) => d.id === id));
   // Use a stable empty-array reference to avoid re-deriving orderedCards on
   // every render when the deck has no loaded entry yet.
@@ -58,13 +58,31 @@ export default function StudyScreen() {
   const [flipped, setFlipped] = useState(false);
   const translateX = useSharedValue(0);
   const opacity = useSharedValue(1);
-  const animating = useRef(false);
+  // Use a Reanimated shared value (not a React ref) for the animating flag.
+  // The withTiming completion callbacks run in the worklet thread, where
+  // mutating a useRef silently no-ops — which is what was leaving this stuck
+  // at "true" after the first swipe and locking out every subsequent gesture.
+  // Shared values can be written from both JS and worklets.
+  const animating = useSharedValue(0);
+  const initialJumped = useRef(false);
 
-  useEffect(() => { setIndex(0); setFlipped(false); }, [orderedCards]);
+  useEffect(() => {
+    // If a startCardId param was passed (from "Study from here…" in the card
+    // menu), jump to that card on the first mount. Otherwise reset to 0.
+    // Subsequent orderedCards changes (shuffle toggle, etc.) always reset.
+    if (!initialJumped.current && startCardId && orderedCards.length > 0) {
+      const i = orderedCards.findIndex((c) => c.id === startCardId);
+      setIndex(i >= 0 ? i : 0);
+      initialJumped.current = true;
+    } else {
+      setIndex(0);
+    }
+    setFlipped(false);
+  }, [orderedCards, startCardId]);
 
   const goTo = (nextIndex: number) => {
-    if (nextIndex < 0 || nextIndex >= orderedCards.length || animating.current) return;
-    animating.current = true;
+    if (nextIndex < 0 || nextIndex >= orderedCards.length || animating.value === 1) return;
+    animating.value = 1;
     const dir = nextIndex > index ? -1 : 1;
     const dur = reduce ? 0 : 280;
     translateX.value = withTiming(dir * width, { duration: dur, easing: Easing.out(Easing.cubic) }, () => {
@@ -72,7 +90,7 @@ export default function StudyScreen() {
       runOnJS(setFlipped)(false);
       translateX.value = -dir * width;
       translateX.value = withTiming(0, { duration: dur, easing: Easing.out(Easing.cubic) }, () => {
-        animating.current = false;
+        animating.value = 0;
       });
     });
     opacity.value = withTiming(0.6, { duration: dur }, () => {

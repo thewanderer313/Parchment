@@ -97,6 +97,14 @@ export default function DeckDetailScreen() {
   const cardMenuItems: ActionSheetItem[] = cardMenu
     ? [
         {
+          label: "Study from this card",
+          onPress: () =>
+            router.push({
+              pathname: "/deck/[id]/study",
+              params: { id: deck.id, startCardId: cardMenu.id },
+            } as never),
+        },
+        {
           label: "Edit",
           onPress: () =>
             router.push({
