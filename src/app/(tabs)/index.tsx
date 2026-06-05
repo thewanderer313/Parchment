@@ -8,7 +8,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { ActionSheet, type ActionSheetItem } from "@/components/ActionSheet";
 import { Ornament } from "@/components/Ornament";
 import { BookSpine } from "@/components/BookSpine";
-import { Shelf } from "@/components/Shelf";
+import { Shelf, SIDE_RAIL_WIDTH } from "@/components/Shelf";
 import { PaperBackground } from "@/components/PaperBackground";
 import { OpenBookIllustration } from "@/components/EmptyIllustrations";
 import { packIntoShelves } from "@/lib/bookshelfLayout";
@@ -36,7 +36,13 @@ export default function StudyTab() {
   // Recomputed when the window resizes (rotation, foldable, etc.) so
   // the packing stays sensible.
   const shelfWidth = windowWidth - 40;
-  const shelves = useMemo(() => packIntoShelves(decks, counts, shelfWidth), [decks, counts, shelfWidth]);
+  // Books need to fit in the compartment INSIDE the side rails, so we
+  // pack against the inner width, not the outer shelf width.
+  const innerShelfWidth = shelfWidth - 2 * SIDE_RAIL_WIDTH;
+  const shelves = useMemo(
+    () => packIntoShelves(decks, counts, innerShelfWidth),
+    [decks, counts, innerShelfWidth]
+  );
 
   const menuItems: ActionSheetItem[] = menuDeck
     ? [

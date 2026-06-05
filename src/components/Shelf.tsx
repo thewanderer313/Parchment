@@ -7,32 +7,36 @@ interface Props {
   width: number;
 }
 
-// A single shelf compartment: the back panel of the cabinet, a row
-// of books resting against it, and the wooden plank they stand on.
+// A single shelf compartment of a real-feeling bookcase. Layout from
+// outside in:
 //
-// Layout:
-//   [   back panel (slightly darker than bgApp)   ]   ← visible behind/above books
-//   [   books row, bottom-aligned                 ]
-//   [   wooden plank                              ]   ← books rest on this
+//   [LSIDE]  [   back panel               ]  [RSIDE]
+//   [     ]  [   books row, bottom-align  ]  [     ]
+//   [LSIDE]  [   wooden plank             ]  [RSIDE]
 //
-// The back panel makes shelves read as compartments inside a cabinet
-// rather than horizontal sticks floating on the parchment background.
-// Without it, books appear to hang in midair against bgApp; with it,
-// they sit inside a recessed niche.
+// The left and right side panels are continuous wooden bars that span
+// the entire Shelf height (compartment + plank). When multiple
+// Shelves stack vertically with marginBottom: 0, those bars line up
+// across rows to form one tall pair of side rails — the cabinet
+// sides. The plank is inset between them, like a real shelf board
+// dropped into a cabinet frame.
 //
-// Books are still bottom-aligned within the row, so the foot of every
-// spine sits flush on the plank and taller books rise into the
-// compartment above shorter ones — exactly like a real bookshelf
-// where book heights vary.
+// All wood tones (plank, side panels, lips, shadows) share the same
+// per-theme palette so the cabinet reads as a single piece of
+// furniture rather than disparate parts.
 const COMPARTMENT_MIN_HEIGHT = 150;
+
+// Side rail width. 12 px is heavy enough to read as a structural side
+// panel without stealing meaningful book-display space. The Study
+// tab compensates by packing books into (shelfWidth - 2 * SIDE_RAIL_WIDTH).
+export const SIDE_RAIL_WIDTH = 12;
 
 export function Shelf({ children, width }: Props) {
   const { theme } = useTheme();
-  // Wood tone for the plank — three-way fork so the shelf reads
-  // palette-consistent in every theme:
+  // Wood tone — three-way fork so the cabinet reads palette-consistent
+  // in every theme:
   //   light   → warm tan plank, cream lip, sepia shadow (oak-on-paper)
   //   dark    → slate plank, brighter slate lip, near-black shadow
-  //             (industrial / nighttime feel)
   //   leather → caramel walnut plank, lighter walnut lip, deep warm
   //             shadow (the wood of an aged study)
   const plankColor =
@@ -48,9 +52,6 @@ export function Shelf({ children, width }: Props) {
     theme.mode === "leather" ? "rgba(15, 5, 0, 0.5)" :
     "rgba(0, 0, 0, 0.4)";
   // Back panel: slightly darker than bgApp so it reads as "behind."
-  // For leather, that means a deeper saddle-brown recess — not the
-  // near-black used in dark mode, which would clash with the warm
-  // surrounding palette.
   const backPanelColor =
     theme.mode === "light" ? "#d8cca6" :
     theme.mode === "leather" ? "#2a1810" :
@@ -60,33 +61,79 @@ export function Shelf({ children, width }: Props) {
     theme.mode === "leather" ? "rgba(15, 5, 0, 0.5)" :
     "rgba(0, 0, 0, 0.5)";
 
+  const innerWidth = width - 2 * SIDE_RAIL_WIDTH;
+
   return (
     <View style={[styles.wrap, { width }]}>
-      <View style={[styles.compartment, { width, minHeight: COMPARTMENT_MIN_HEIGHT }]}>
-        {/* Back panel fills the compartment behind the books */}
-        <View style={[styles.backPanel, { backgroundColor: backPanelColor }]}>
-          {/* Top shadow line — the shelf above casts a thin band of
-              shadow on the back wall just under the cabinet ceiling. */}
-          <View style={[styles.backTopShadow, { backgroundColor: backTopShadow }]} />
-        </View>
-        {/* Books row sits in front of the back panel */}
-        <View style={[styles.booksRow, { width }]}>{children}</View>
+      {/* Left side rail — vertical wooden bar, inner edge catches
+          light, outer edge in shadow. */}
+      <View style={[styles.sideRail, { backgroundColor: plankColor }]}>
+        <View style={[styles.sideRailInnerLight, { backgroundColor: plankLip, right: 0 }]} />
+        <View style={[styles.sideRailOuterShadow, { backgroundColor: plankShadow, left: 0 }]} />
       </View>
-      <View style={[styles.shelfPlank, { backgroundColor: plankColor, width }]}>
-        <View style={[styles.shelfLip, { backgroundColor: plankLip }]} />
-        <View style={[styles.shelfShadow, { backgroundColor: plankShadow }]} />
+
+      {/* Centre column: compartment over plank */}
+      <View style={[styles.column, { width: innerWidth }]}>
+        <View style={[styles.compartment, { width: innerWidth, minHeight: COMPARTMENT_MIN_HEIGHT }]}>
+          <View style={[styles.backPanel, { backgroundColor: backPanelColor }]}>
+            <View style={[styles.backTopShadow, { backgroundColor: backTopShadow }]} />
+          </View>
+          <View style={[styles.booksRow, { width: innerWidth }]}>{children}</View>
+        </View>
+        <View style={[styles.shelfPlank, { backgroundColor: plankColor, width: innerWidth }]}>
+          <View style={[styles.shelfLip, { backgroundColor: plankLip }]} />
+          <View style={[styles.shelfShadow, { backgroundColor: plankShadow }]} />
+        </View>
+      </View>
+
+      {/* Right side rail — mirror of the left. Light on the inner
+          (left) edge, shadow on the outer (right) edge. */}
+      <View style={[styles.sideRail, { backgroundColor: plankColor }]}>
+        <View style={[styles.sideRailInnerLight, { backgroundColor: plankLip, left: 0 }]} />
+        <View style={[styles.sideRailOuterShadow, { backgroundColor: plankShadow, right: 0 }]} />
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Flush vertical stacking: marginBottom: 0 so the side rails of
+  // adjacent shelves line up into one continuous pair of cabinet
+  // sides. The plank inside each shelf provides the visual divider
+  // between rows.
   wrap: {
+    flexDirection: "row",
     alignSelf: "center",
-    marginBottom: 22,
+    marginBottom: 0,
+  },
+  sideRail: {
+    width: SIDE_RAIL_WIDTH,
+    alignSelf: "stretch", // matches the column height
+    position: "relative",
+  },
+  // 1 px highlight strip along the inner edge of each side rail (the
+  // edge facing the books). Suggests the rail's front face catches
+  // light from inside the cabinet compartment.
+  sideRailInnerLight: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    width: 1,
+    opacity: 0.9,
+  },
+  // 1 px shadow along the outer edge — the rail's back face is in
+  // shade.
+  sideRailOuterShadow: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    width: 1,
+    opacity: 0.5,
+  },
+  column: {
+    // width set inline based on outer width - 2 * SIDE_RAIL_WIDTH
   },
   compartment: {
-    // position: relative is implicit; backPanel is absolute children.
     justifyContent: "flex-end",
   },
   backPanel: {
@@ -114,7 +161,6 @@ const styles = StyleSheet.create({
   },
   shelfPlank: {
     height: 10,
-    borderRadius: 2,
     marginTop: -1,
     overflow: "hidden",
   },
