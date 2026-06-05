@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { FONT_SERIF, FONT_DISPLAY } from "@/theme/fonts";
 import { Ornament } from "@/components/Ornament";
+import { BookStackIllustration } from "@/components/EmptyIllustrations";
 
 const HEADLINE = "Empty shelves.";
 const SUB = "Tap the + above to compose your first deck.";
@@ -16,9 +17,9 @@ export function EmptyDeckList() {
       accessibilityRole="text"
       accessibilityLabel={`Empty library. ${SUB}`}
     >
-      <Text style={[styles.glyph, { color: theme.colors.textMuted }]} accessible={false}>
-        ❦
-      </Text>
+      <View style={styles.illoWrap} accessible={false}>
+        <BookStackIllustration color={theme.colors.textMuted} size={150} />
+      </View>
       <Text style={[styles.headline, { color: theme.colors.textPrimary }]} accessible={false}>
         {HEADLINE}
       </Text>
@@ -40,7 +41,7 @@ const styles = StyleSheet.create({
     padding: 32,
     gap: 4,
   },
-  glyph: { fontFamily: FONT_DISPLAY, fontSize: 44, marginBottom: 6 },
+  illoWrap: { marginBottom: 14 },
   headline: { fontFamily: FONT_DISPLAY, fontSize: 24, letterSpacing: 0.2 },
   copy: {
     fontFamily: FONT_SERIF,

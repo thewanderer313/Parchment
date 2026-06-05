@@ -10,6 +10,7 @@ import { Ornament } from "@/components/Ornament";
 import { BookSpine } from "@/components/BookSpine";
 import { Shelf } from "@/components/Shelf";
 import { PaperBackground } from "@/components/PaperBackground";
+import { OpenBookIllustration } from "@/components/EmptyIllustrations";
 import { packIntoShelves } from "@/lib/bookshelfLayout";
 import type { Deck } from "@/store/decksStore";
 import { FONT_SERIF, FONT_DISPLAY, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
@@ -136,7 +137,9 @@ function EmptyShelves({ shelfWidth }: { shelfWidth: number }) {
   const { theme } = useTheme();
   return (
     <View style={styles.empty}>
-      <Text style={[styles.emptyGlyph, { color: theme.colors.textMuted }]}>❦</Text>
+      <View style={styles.emptyIlloWrap}>
+        <OpenBookIllustration color={theme.colors.textMuted} size={140} />
+      </View>
       <Text style={[styles.emptyHeadline, { color: theme.colors.textPrimary }]}>
         A quiet shelf.
       </Text>
@@ -181,7 +184,7 @@ const styles = StyleSheet.create({
   list: { paddingTop: 4, paddingBottom: 24 },
   empty: { flex: 1, alignItems: "center", padding: 24, gap: 6 },
   emptyShelves: { marginTop: 28, alignSelf: "stretch", alignItems: "center" },
-  emptyGlyph: { fontSize: 38, fontFamily: FONT_DISPLAY, marginBottom: 6 },
+  emptyIlloWrap: { marginBottom: 14 },
   emptyHeadline: { fontFamily: FONT_DISPLAY, fontSize: 22 },
   emptyCopy: { fontFamily: FONT_SERIF, fontSize: 14, fontStyle: "italic", textAlign: "center", maxWidth: 280 },
 });

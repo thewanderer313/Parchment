@@ -12,6 +12,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { FONT_SERIF, FONT_DISPLAY, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
 import { Ornament } from "@/components/Ornament";
 import { PaperBackground } from "@/components/PaperBackground";
+import { QuillOnPageIllustration } from "@/components/EmptyIllustrations";
 import { CardRow } from "@/components/CardRow";
 import { exportDeck } from "@/lib/export";
 import { writeAndShare } from "@/lib/share";
@@ -188,7 +189,9 @@ export default function DeckDetailScreen() {
 
       {cards.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={[styles.emptyGlyph, { color: theme.colors.textMuted }]}>❦</Text>
+          <View style={styles.emptyIlloWrap}>
+            <QuillOnPageIllustration color={theme.colors.textMuted} size={140} />
+          </View>
           <Text style={[styles.emptyHeadline, { color: theme.colors.textPrimary }]}>A fresh page.</Text>
           <Text style={[styles.emptyCopy, { color: theme.colors.textMuted }]}>
             Tap “+ Add card” to begin.
@@ -259,7 +262,7 @@ const styles = StyleSheet.create({
   btnGhostLabel: { fontFamily: FONT_SERIF, fontSize: 14, fontWeight: "600" },
   list: { paddingHorizontal: 20, paddingBottom: 20 },
   empty: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 6 },
-  emptyGlyph: { fontFamily: FONT_DISPLAY, fontSize: 40, marginBottom: 6 },
+  emptyIlloWrap: { marginBottom: 12 },
   emptyHeadline: { fontFamily: FONT_DISPLAY, fontSize: 22 },
   emptyCopy: { fontFamily: FONT_SERIF, fontSize: 14, fontStyle: "italic", textAlign: "center", maxWidth: 280, marginTop: 4 },
   menuBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
