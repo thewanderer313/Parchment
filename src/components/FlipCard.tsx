@@ -58,10 +58,28 @@ export function FlipCard({ front, back, flipped: controlled, onFlip }: Props) {
       onPress={toggle}
       style={styles.root}
     >
-      <Animated.View style={[styles.face, { backgroundColor: theme.colors.bgCard }, frontStyle]}>
+      <Animated.View
+        style={[
+          styles.face,
+          {
+            backgroundColor: theme.colors.bgCard,
+            borderColor: theme.colors.accentSoft,
+          },
+          frontStyle,
+        ]}
+      >
         <View style={styles.faceContent}>{front}</View>
       </Animated.View>
-      <Animated.View style={[styles.face, { backgroundColor: theme.colors.bgCard }, backStyle]}>
+      <Animated.View
+        style={[
+          styles.face,
+          {
+            backgroundColor: theme.colors.bgCard,
+            borderColor: theme.colors.accentSoft,
+          },
+          backStyle,
+        ]}
+      >
         <View style={styles.faceContent}>{back}</View>
       </Animated.View>
     </Pressable>
@@ -76,9 +94,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 18,
+    borderRadius: 16,
     overflow: "hidden",
     backfaceVisibility: "hidden",
+    // Hairline border — the card reads as a bordered folio rather
+    // than a floating colored rectangle. Subtle but high impact.
+    borderWidth: StyleSheet.hairlineWidth,
   },
   faceContent: { flex: 1, padding: 24, alignItems: "center", justifyContent: "center" },
 });

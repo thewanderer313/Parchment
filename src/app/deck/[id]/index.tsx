@@ -9,7 +9,8 @@ import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 import { useDecksStore } from "@/store/decksStore";
 import { useCardsStore } from "@/store/cardsStore";
 import { useTheme } from "@/theme/ThemeProvider";
-import { FONT_SERIF } from "@/theme/fonts";
+import { FONT_SERIF, FONT_DISPLAY, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
+import { Ornament } from "@/components/Ornament";
 import { CardRow } from "@/components/CardRow";
 import { exportDeck } from "@/lib/export";
 import { writeAndShare } from "@/lib/share";
@@ -142,6 +143,9 @@ export default function DeckDetailScreen() {
         <Text style={[styles.emoji, { color: theme.colors.textPrimary }]}>{deck.emoji ?? "📁"}</Text>
         <View style={{ flex: 1 }}>
           <Text style={[styles.name, { color: theme.colors.textPrimary }]} numberOfLines={2}>{deck.name}</Text>
+          <View style={styles.headerOrnament}>
+            <Ornament width={64} glyph="·" />
+          </View>
           {deck.description && (
             <Text style={[styles.desc, { color: theme.colors.textMuted }]} numberOfLines={3}>
               {deck.description}
@@ -182,8 +186,11 @@ export default function DeckDetailScreen() {
 
       {cards.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={[styles.emptyGlyph, { color: theme.colors.textMuted }]}>🎴</Text>
-          <Text style={[styles.emptyCopy, { color: theme.colors.textMuted }]}>No cards yet. Tap "+ Add card" to create one.</Text>
+          <Text style={[styles.emptyGlyph, { color: theme.colors.textMuted }]}>❦</Text>
+          <Text style={[styles.emptyHeadline, { color: theme.colors.textPrimary }]}>A fresh page.</Text>
+          <Text style={[styles.emptyCopy, { color: theme.colors.textMuted }]}>
+            Tap “+ Add card” to begin.
+          </Text>
         </View>
       ) : (
         <DraggableFlatList
@@ -236,17 +243,19 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   header: { flexDirection: "row", alignItems: "flex-start", paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12, gap: 12 },
   emoji: { fontSize: 36 },
-  name: { fontFamily: FONT_SERIF, fontSize: 22, fontWeight: "700", letterSpacing: -0.3 },
-  desc: { fontFamily: FONT_SERIF, fontSize: 13, fontStyle: "italic", marginTop: 4 },
+  name: { fontFamily: FONT_DISPLAY, fontSize: 26, letterSpacing: 0.2 },
+  headerOrnament: { marginTop: 4, marginBottom: 4, alignSelf: "flex-start", width: 64 },
+  desc: { fontFamily: FONT_DISPLAY_ITALIC, fontSize: 14, marginTop: 2 },
   actions: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingBottom: 16 },
   btnPrimary: { paddingHorizontal: 22, paddingVertical: 10, borderRadius: 999 },
   btnPrimaryLabel: { fontFamily: FONT_SERIF, fontSize: 14, fontWeight: "600" },
   btnGhost: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 999, borderWidth: 1 },
   btnGhostLabel: { fontFamily: FONT_SERIF, fontSize: 14, fontWeight: "600" },
   list: { paddingHorizontal: 20, paddingBottom: 20 },
-  empty: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 16 },
-  emptyGlyph: { fontSize: 48 },
-  emptyCopy: { fontFamily: FONT_SERIF, fontSize: 14, fontStyle: "italic", textAlign: "center", maxWidth: 280 },
+  empty: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 6 },
+  emptyGlyph: { fontFamily: FONT_DISPLAY, fontSize: 40, marginBottom: 6 },
+  emptyHeadline: { fontFamily: FONT_DISPLAY, fontSize: 22 },
+  emptyCopy: { fontFamily: FONT_SERIF, fontSize: 14, fontStyle: "italic", textAlign: "center", maxWidth: 280, marginTop: 4 },
   menuBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
   menuGlyph: { fontSize: 26, lineHeight: 26, fontWeight: "700" },
 });

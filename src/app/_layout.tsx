@@ -11,9 +11,15 @@ import {
   StyleSheet,
   useColorScheme,
 } from "react-native";
+import {
+  useFonts,
+  EBGaramond_400Regular,
+  EBGaramond_400Regular_Italic,
+  EBGaramond_700Bold,
+} from "@expo-google-fonts/eb-garamond";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 import { lightTheme, darkTheme, type Theme } from "@/theme/palette";
-import { FONT_SERIF } from "@/theme/fonts";
+import { FONT_SERIF, FONT_DISPLAY } from "@/theme/fonts";
 import { useSettingsStore } from "@/store/settingsStore";
 import { useDecksStore } from "@/store/decksStore";
 import { useCardsStore } from "@/store/cardsStore";
@@ -32,7 +38,7 @@ function ThemedStack() {
           contentStyle: { backgroundColor: theme.colors.bgApp },
           headerStyle: { backgroundColor: theme.colors.bgApp },
           headerTintColor: theme.colors.textPrimary,
-          headerTitleStyle: { fontFamily: FONT_SERIF, fontWeight: "700" },
+          headerTitleStyle: { fontFamily: FONT_DISPLAY, fontSize: 18 },
           headerShadowVisible: false,
         }}
       >
@@ -87,6 +93,14 @@ export default function RootLayout() {
   const themeMode = useSettingsStore((s) => s.themeMode);
   const systemScheme = useColorScheme();
   const bootPalette: Theme = systemScheme === "dark" ? darkTheme : lightTheme;
+  // EB Garamond is used for screen titles and deck names. Block ready
+  // status until it's loaded so the first paint isn't a Georgia title
+  // briefly swapping for a Garamond one — looks janky on dev-client.
+  const [fontsLoaded] = useFonts({
+    EBGaramond_400Regular,
+    EBGaramond_400Regular_Italic,
+    EBGaramond_700Bold,
+  });
 
   const hydrate = () => {
     setStatus("loading");
@@ -113,7 +127,7 @@ export default function RootLayout() {
     return cancel;
   }, []);
 
-  if (status !== "ready") {
+  if (status !== "ready" || !fontsLoaded) {
     return <FullScreenStatus status={status} palette={bootPalette} onRetry={hydrate} />;
   }
 

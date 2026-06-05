@@ -7,7 +7,7 @@ import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 import { useDecksStore } from "@/store/decksStore";
 import { useCardsStore } from "@/store/cardsStore";
 import { useTheme } from "@/theme/ThemeProvider";
-import { FONT_SERIF } from "@/theme/fonts";
+import { FONT_SERIF, FONT_DISPLAY, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
 import { FlipCard } from "@/components/FlipCard";
 import { MarkdownText } from "@/components/MarkdownText";
 import { useReduceMotion } from "@/lib/useReduceMotion";
@@ -215,14 +215,14 @@ const styles = StyleSheet.create({
   iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   iconLabel: { fontSize: 22, fontWeight: "300" },
   titleWrap: { flex: 1, alignItems: "center" },
-  titleDeck: { fontFamily: FONT_SERIF, fontSize: 12, fontStyle: "italic" },
-  titleCount: { fontFamily: FONT_SERIF, fontSize: 14, fontWeight: "600" },
+  titleDeck: { fontFamily: FONT_DISPLAY_ITALIC, fontSize: 13 },
+  titleCount: { fontFamily: FONT_DISPLAY, fontSize: 15 },
   cardArea: { flex: 1, padding: 16 },
   faceInner: { gap: 14, alignItems: "center" },
-  hint: { fontFamily: FONT_SERIF, fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase" },
+  hint: { fontFamily: FONT_DISPLAY, fontSize: 10, letterSpacing: 3, textTransform: "uppercase" },
   bottomBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 14 },
   navBtn: { padding: 8 },
-  navLabel: { fontFamily: FONT_SERIF, fontSize: 14, fontWeight: "600" },
+  navLabel: { fontFamily: FONT_DISPLAY, fontSize: 14 },
   dots: { flexDirection: "row", gap: 6, alignItems: "center" },
   dot: { width: 6, height: 6, borderRadius: 3 },
 });

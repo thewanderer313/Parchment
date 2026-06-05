@@ -1,9 +1,11 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useTheme } from "@/theme/ThemeProvider";
-import { FONT_SERIF } from "@/theme/fonts";
+import { FONT_SERIF, FONT_DISPLAY } from "@/theme/fonts";
+import { Ornament } from "@/components/Ornament";
 
-const EMPTY_COPY = "Tap + to create your first deck";
+const HEADLINE = "Empty shelves.";
+const SUB = "Tap the + above to compose your first deck.";
 
 export function EmptyDeckList() {
   const { theme } = useTheme();
@@ -12,13 +14,19 @@ export function EmptyDeckList() {
       style={styles.container}
       accessible
       accessibilityRole="text"
-      accessibilityLabel={`Empty library. ${EMPTY_COPY}.`}
+      accessibilityLabel={`Empty library. ${SUB}`}
     >
       <Text style={[styles.glyph, { color: theme.colors.textMuted }]} accessible={false}>
-        📚
+        ❦
       </Text>
+      <Text style={[styles.headline, { color: theme.colors.textPrimary }]} accessible={false}>
+        {HEADLINE}
+      </Text>
+      <View style={{ width: 90, marginVertical: 4 }}>
+        <Ornament width={90} glyph="·" />
+      </View>
       <Text style={[styles.copy, { color: theme.colors.textMuted }]} accessible={false}>
-        {EMPTY_COPY}
+        {SUB}
       </Text>
     </View>
   );
@@ -30,13 +38,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 32,
-    gap: 16,
+    gap: 4,
   },
-  glyph: { fontSize: 48 },
+  glyph: { fontFamily: FONT_DISPLAY, fontSize: 44, marginBottom: 6 },
+  headline: { fontFamily: FONT_DISPLAY, fontSize: 24, letterSpacing: 0.2 },
   copy: {
     fontFamily: FONT_SERIF,
-    fontSize: 15,
+    fontSize: 14,
     fontStyle: "italic",
     textAlign: "center",
+    marginTop: 4,
   },
 });

@@ -14,8 +14,9 @@ import { DeckTile } from "@/components/DeckTile";
 import { ActionSheet, type ActionSheetItem } from "@/components/ActionSheet";
 import { PasteImportModal } from "@/components/PasteImportModal";
 import { useDeckImport } from "@/lib/useDeckImport";
+import { Ornament } from "@/components/Ornament";
 import type { Deck } from "@/store/decksStore";
-import { FONT_SERIF } from "@/theme/fonts";
+import { FONT_SERIF, FONT_DISPLAY, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
 
 function confirmDelete(deckName: string, onConfirm: () => void) {
   Alert.alert(
@@ -95,12 +96,15 @@ export default function LibraryTab() {
       edges={["top", "left", "right"]}
     >
       <View style={styles.header}>
-        <View>
+        <View style={styles.titleColumn}>
           <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Library</Text>
+          <View style={styles.ornamentWrap}>
+            <Ornament width={96} />
+          </View>
           <Text style={[styles.subtitle, { color: theme.colors.textMuted }]}>
             {decks.length === 0
-              ? "Your library is empty"
-              : `${decks.length} ${decks.length === 1 ? "collection" : "collections"}`}
+              ? "Empty shelves, full possibilities"
+              : `${decks.length} ${decks.length === 1 ? "deck on the shelf" : "decks on the shelf"}`}
           </Text>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -172,23 +176,22 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   header: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 20,
+    paddingTop: 16,
+    paddingBottom: 22,
   },
+  titleColumn: { alignItems: "flex-start", flexShrink: 1 },
   title: {
-    fontFamily: FONT_SERIF,
-    fontSize: 32,
-    fontWeight: "700",
-    letterSpacing: -0.5,
+    fontFamily: FONT_DISPLAY,
+    fontSize: 38,
+    letterSpacing: 0.2,
   },
+  ornamentWrap: { marginTop: 2, marginBottom: 8, alignSelf: "stretch", alignItems: "flex-start" },
   subtitle: {
-    fontFamily: FONT_SERIF,
-    fontSize: 13,
-    fontStyle: "italic",
-    marginTop: 2,
+    fontFamily: FONT_DISPLAY_ITALIC,
+    fontSize: 15,
   },
   plus: {
     width: 40,
@@ -201,6 +204,6 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: 16, paddingBottom: 24 },
   row: { gap: 12, marginBottom: 12 },
   tileWrap: { flex: 1 },
-  gearBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  gearBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center", marginTop: 6 },
   gearGlyph: { fontSize: 22 },
 });

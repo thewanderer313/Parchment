@@ -7,7 +7,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { useSettingsStore } from "@/store/settingsStore";
 import { useDecksStore } from "@/store/decksStore";
 import { useCardsStore } from "@/store/cardsStore";
-import { FONT_SERIF } from "@/theme/fonts";
+import { FONT_SERIF, FONT_DISPLAY, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
 import { THEME_SELECTIONS, type ThemeSelection } from "@/theme/palette";
 import { exportLibrary } from "@/lib/export";
 import { writeAndShare } from "@/lib/share";
@@ -92,10 +92,13 @@ export default function SettingsScreen() {
         </Pressable>
 
         <Text style={[styles.label, { color: theme.colors.textMuted }]}>About</Text>
-        <Text style={[styles.aboutLine, { color: theme.colors.textBody }]}>
-          Parchment v{Constants.expoConfig?.version ?? "0.1.0"}
+        <Text style={[styles.wordmark, { color: theme.colors.textPrimary }]}>
+          Parchment
         </Text>
-        <Text style={[styles.aboutLine, { color: theme.colors.textMuted, fontStyle: "italic" }]}>
+        <Text style={[styles.aboutLine, { color: theme.colors.textMuted }]}>
+          v{Constants.expoConfig?.version ?? "0.1.0"}
+        </Text>
+        <Text style={[styles.flavor, { color: theme.colors.textMuted }]}>
           Made for quiet studying.
         </Text>
       </ScrollView>
@@ -114,8 +117,8 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   body: { padding: 20, gap: 4 },
   label: {
-    fontFamily: FONT_SERIF, fontSize: 12, fontStyle: "italic",
-    marginTop: 16, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5,
+    fontFamily: FONT_DISPLAY, fontSize: 11,
+    marginTop: 20, marginBottom: 8, textTransform: "uppercase", letterSpacing: 2,
   },
   segment: { flexDirection: "row", borderWidth: 1, borderRadius: 999, padding: 4, gap: 4 },
   segmentItem: { flex: 1, paddingVertical: 8, alignItems: "center", borderRadius: 999 },
@@ -127,5 +130,16 @@ const styles = StyleSheet.create({
   },
   btnLabel: { fontFamily: FONT_SERIF, fontSize: 15, fontWeight: "600" },
   btnSub: { fontFamily: FONT_SERIF, fontSize: 12, fontStyle: "italic", marginTop: 4 },
-  aboutLine: { fontFamily: FONT_SERIF, fontSize: 14, marginTop: 2 },
+  wordmark: {
+    fontFamily: FONT_DISPLAY,
+    fontSize: 26,
+    letterSpacing: 0.4,
+    marginTop: 4,
+  },
+  aboutLine: { fontFamily: FONT_SERIF, fontSize: 13, marginTop: 2 },
+  flavor: {
+    fontFamily: FONT_DISPLAY_ITALIC,
+    fontSize: 14,
+    marginTop: 8,
+  },
 });

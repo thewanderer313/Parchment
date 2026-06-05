@@ -7,8 +7,9 @@ import { useCardsStore } from "@/store/cardsStore";
 import { useTheme } from "@/theme/ThemeProvider";
 import { DeckTile } from "@/components/DeckTile";
 import { ActionSheet, type ActionSheetItem } from "@/components/ActionSheet";
+import { Ornament } from "@/components/Ornament";
 import type { Deck } from "@/store/decksStore";
-import { FONT_SERIF } from "@/theme/fonts";
+import { FONT_SERIF, FONT_DISPLAY, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
 
 // Study tab — the default landing screen. Tapping a deck pushes
 // directly into the study session (skipping Deck Detail), which is
@@ -48,11 +49,14 @@ export default function StudyTab() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: theme.colors.bgApp }]} edges={["top", "left", "right"]}>
       <View style={styles.header}>
-        <View>
+        <View style={styles.titleColumn}>
           <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Study</Text>
+          <View style={styles.ornamentWrap}>
+            <Ornament width={84} />
+          </View>
           <Text style={[styles.subtitle, { color: theme.colors.textMuted }]}>
             {decks.length === 0
-              ? "Nothing to study yet"
+              ? "Nothing on your desk just yet"
               : `Tap a deck to begin`}
           </Text>
         </View>
@@ -68,9 +72,12 @@ export default function StudyTab() {
 
       {decks.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={[styles.emptyGlyph, { color: theme.colors.textMuted }]}>📖</Text>
+          <Text style={[styles.emptyGlyph, { color: theme.colors.textMuted }]}>❦</Text>
+          <Text style={[styles.emptyHeadline, { color: theme.colors.textPrimary }]}>
+            A quiet shelf.
+          </Text>
           <Text style={[styles.emptyCopy, { color: theme.colors.textMuted }]}>
-            Head to the Library tab to create your first deck.
+            Hop over to the Library tab to compose your first deck.
           </Text>
         </View>
       ) : (
@@ -119,30 +126,30 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   header: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 20,
+    paddingTop: 16,
+    paddingBottom: 22,
   },
+  titleColumn: { alignItems: "flex-start" },
   title: {
-    fontFamily: FONT_SERIF,
-    fontSize: 32,
-    fontWeight: "700",
-    letterSpacing: -0.5,
+    fontFamily: FONT_DISPLAY,
+    fontSize: 38,
+    letterSpacing: 0.2,
   },
+  ornamentWrap: { marginTop: 2, marginBottom: 8, alignSelf: "stretch", alignItems: "flex-start" },
   subtitle: {
-    fontFamily: FONT_SERIF,
-    fontSize: 13,
-    fontStyle: "italic",
-    marginTop: 2,
+    fontFamily: FONT_DISPLAY_ITALIC,
+    fontSize: 15,
   },
-  gearBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  gearBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center", marginTop: 6 },
   gearGlyph: { fontSize: 22 },
   list: { paddingHorizontal: 16, paddingBottom: 24 },
   row: { gap: 12, marginBottom: 12 },
   tileWrap: { flex: 1 },
-  empty: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 16 },
-  emptyGlyph: { fontSize: 48 },
+  empty: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 10 },
+  emptyGlyph: { fontSize: 38, fontFamily: FONT_DISPLAY, marginBottom: 6 },
+  emptyHeadline: { fontFamily: FONT_DISPLAY, fontSize: 22 },
   emptyCopy: { fontFamily: FONT_SERIF, fontSize: 14, fontStyle: "italic", textAlign: "center", maxWidth: 280 },
 });
