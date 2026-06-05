@@ -19,9 +19,9 @@ import {
   EBGaramond_700Bold,
 } from "@expo-google-fonts/eb-garamond";
 import {
-  IMFellEnglish_400Regular,
-  IMFellEnglish_400Regular_Italic,
-} from "@expo-google-fonts/im-fell-english";
+  CinzelDecorative_400Regular,
+  CinzelDecorative_700Bold,
+} from "@expo-google-fonts/cinzel-decorative";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 import { lightTheme, darkTheme, type Theme } from "@/theme/palette";
 import { FONT_SERIF, FONT_DISPLAY } from "@/theme/fonts";
@@ -126,8 +126,8 @@ export default function RootLayout() {
     EBGaramond_400Regular,
     EBGaramond_400Regular_Italic,
     EBGaramond_700Bold,
-    IMFellEnglish_400Regular,
-    IMFellEnglish_400Regular_Italic,
+    CinzelDecorative_400Regular,
+    CinzelDecorative_700Bold,
   });
 
   // Splash state — three concerns:

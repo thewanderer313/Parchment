@@ -187,8 +187,9 @@ const styles = StyleSheet.create({
   titleColumn: { alignItems: "flex-start" },
   title: {
     fontFamily: FONT_OLDBOOK,
-    fontSize: 46,
-    letterSpacing: 0.5,
+    fontSize: 36,
+    letterSpacing: 2.5,
+    textTransform: "uppercase",
   },
   ornamentWrap: { marginTop: 2, marginBottom: 8, alignSelf: "stretch", alignItems: "flex-start" },
   subtitle: {
