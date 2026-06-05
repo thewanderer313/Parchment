@@ -13,6 +13,7 @@ import { exportLibrary } from "@/lib/export";
 import { writeAndShare } from "@/lib/share";
 import { useDeckImport } from "@/lib/useDeckImport";
 import { PasteImportModal } from "@/components/PasteImportModal";
+import { PaperBackground } from "@/components/PaperBackground";
 
 export default function SettingsScreen() {
   const { theme } = useTheme();
@@ -41,6 +42,7 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: theme.colors.bgApp }]} edges={["top", "left", "right"]}>
       <Stack.Screen options={{ title: "Settings" }} />
+      <PaperBackground seed={0x88ba17} />
       <ScrollView contentContainerStyle={styles.body}>
         <Text style={[styles.label, { color: theme.colors.textMuted }]}>Theme</Text>
         <View style={[styles.segment, { borderColor: theme.colors.accentSoft }]}>

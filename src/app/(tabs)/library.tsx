@@ -15,6 +15,7 @@ import { ActionSheet, type ActionSheetItem } from "@/components/ActionSheet";
 import { PasteImportModal } from "@/components/PasteImportModal";
 import { useDeckImport } from "@/lib/useDeckImport";
 import { Ornament } from "@/components/Ornament";
+import { PaperBackground } from "@/components/PaperBackground";
 import type { Deck } from "@/store/decksStore";
 import { FONT_SERIF, FONT_DISPLAY, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
 
@@ -95,6 +96,7 @@ export default function LibraryTab() {
       style={[styles.root, { backgroundColor: theme.colors.bgApp }]}
       edges={["top", "left", "right"]}
     >
+      <PaperBackground seed={0x1a7b3e} />
       <View style={styles.header}>
         <View style={styles.titleColumn}>
           <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Library</Text>

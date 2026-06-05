@@ -11,6 +11,7 @@ import { FONT_SERIF, FONT_DISPLAY, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
 import { FlipCard } from "@/components/FlipCard";
 import { MarkdownText } from "@/components/MarkdownText";
 import { useReduceMotion } from "@/lib/useReduceMotion";
+import { PaperBackground } from "@/components/PaperBackground";
 
 function shuffleArray<T>(arr: T[]): T[] {
   const a = arr.slice();
@@ -133,6 +134,7 @@ export default function StudyScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: theme.colors.bgApp }]} edges={["top", "left", "right", "bottom"]}>
       <Stack.Screen options={{ headerShown: false }} />
+      <PaperBackground seed={0xd3e1f9} />
 
       <View style={styles.topBar}>
         <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.iconBtn}>

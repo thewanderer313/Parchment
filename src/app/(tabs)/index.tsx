@@ -9,6 +9,7 @@ import { ActionSheet, type ActionSheetItem } from "@/components/ActionSheet";
 import { Ornament } from "@/components/Ornament";
 import { BookSpine } from "@/components/BookSpine";
 import { Shelf } from "@/components/Shelf";
+import { PaperBackground } from "@/components/PaperBackground";
 import { packIntoShelves } from "@/lib/bookshelfLayout";
 import type { Deck } from "@/store/decksStore";
 import { FONT_SERIF, FONT_DISPLAY, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
@@ -59,6 +60,7 @@ export default function StudyTab() {
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: theme.colors.bgApp }]} edges={["top", "left", "right"]}>
+      <PaperBackground seed={0x5e30af} />
       <View style={styles.header}>
         <View style={styles.titleColumn}>
           <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Study</Text>

@@ -11,6 +11,7 @@ import { useCardsStore } from "@/store/cardsStore";
 import { useTheme } from "@/theme/ThemeProvider";
 import { FONT_SERIF, FONT_DISPLAY, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
 import { Ornament } from "@/components/Ornament";
+import { PaperBackground } from "@/components/PaperBackground";
 import { CardRow } from "@/components/CardRow";
 import { exportDeck } from "@/lib/export";
 import { writeAndShare } from "@/lib/share";
@@ -139,6 +140,7 @@ export default function DeckDetailScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: theme.colors.bgApp }]} edges={["bottom", "left", "right"]}>
       <Stack.Screen options={{ title: deck.name }} />
+      <PaperBackground seed={0xc1a9d2} />
       <View style={styles.header}>
         <Text style={[styles.emoji, { color: theme.colors.textPrimary }]}>{deck.emoji ?? "📁"}</Text>
         <View style={{ flex: 1 }}>
