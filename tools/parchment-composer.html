@@ -972,6 +972,27 @@ document.addEventListener("input", function (e) {
   }
 });
 
+// Toolbar buttons must not steal focus from the textarea on mousedown —
+// otherwise the textarea loses focus before the click fires, the visible
+// selection collapses, and the user's "select then click B" workflow
+// produces wrapped-empty-string instead of wrapped-selection. Calling
+// preventDefault() in mousedown keeps the textarea focused (and its
+// selection alive) so insertSyntax() can read selectionStart/end and
+// wrap the user's highlighted text.
+document.addEventListener("mousedown", function (e) {
+  const t = e.target.closest("button[data-act]");
+  if (!t) return;
+  // Only suppress focus shift for the markdown toolbar actions that
+  // operate on the current textarea selection.
+  const act = t.dataset.act;
+  if (
+    act === "bold" || act === "italic" || act === "code" ||
+    act === "h" || act === "ul" || act === "ol" || act === "link"
+  ) {
+    e.preventDefault();
+  }
+});
+
 document.addEventListener("click", function (e) {
   const t = e.target.closest("button, [data-act]");
   if (!t) return;
