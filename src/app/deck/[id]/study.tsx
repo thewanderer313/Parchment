@@ -129,6 +129,25 @@ export default function StudyScreen() {
       else if (e.translationX > 60) runOnJS(goTo)(index - 1);
     });
 
+  // Swipe-up gesture for the bottom grab handle — activates only on
+  // sustained upward movement (10 px threshold) so a quick tap on the
+  // handle goes through to the tap recogniser below instead. On end,
+  // a translation of < -40 px is treated as a deliberate "open the
+  // card index" swipe.
+  const jumpPan = Gesture.Pan()
+    .activeOffsetY([-10, 9999])
+    .onEnd((e) => {
+      "worklet";
+      if (e.translationY < -40) runOnJS(setJumpOpen)(true);
+    });
+  const jumpTap = Gesture.Tap().onEnd(() => {
+    "worklet";
+    runOnJS(setJumpOpen)(true);
+  });
+  // Race: whichever resolves first wins — a tap fires instantly, a
+  // swipe-up only after the user crosses the activation threshold.
+  const jumpGesture = Gesture.Race(jumpTap, jumpPan);
+
   const swipeStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
     opacity: opacity.value,
@@ -162,19 +181,14 @@ export default function StudyScreen() {
         <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.iconBtn}>
           <Text style={[styles.iconLabel, { color: theme.colors.textPrimary }]}>✕</Text>
         </Pressable>
-        {/* Tap the title row to open the card-jump panel — natural
-            affordance for "I want to navigate to a specific card." */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Jump to card. Currently card ${index + 1} of ${orderedCards.length}`}
-          onPress={() => setJumpOpen(true)}
-          style={styles.titleWrap}
-        >
+        {/* Plain (non-tappable) title now — the card-jump panel
+            opens via swipe-up from the bottom grab handle below. */}
+        <View style={styles.titleWrap}>
           <Text style={[styles.titleDeck, { color: theme.colors.textMuted }]} numberOfLines={1}>{deck.name}</Text>
           <Text style={[styles.titleCount, { color: theme.colors.textPrimary }]}>
-            Card {index + 1} of {orderedCards.length}  <Text style={[styles.titleHint, { color: theme.colors.textMuted }]}>≡</Text>
+            Card {index + 1} of {orderedCards.length}
           </Text>
-        </Pressable>
+        </View>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={shuffle ? "Disable shuffle" : "Enable shuffle"}
@@ -243,6 +257,20 @@ export default function StudyScreen() {
         </Pressable>
       </View>
 
+      {/* Bottom grab handle. Tap or swipe-up opens the card index
+          panel. The visible bar is a small horizontal pill in
+          textMuted; the touch target extends ~24 px above and below
+          it for finger comfort even on edge-to-edge phones. */}
+      <GestureDetector gesture={jumpGesture}>
+        <View
+          accessibilityRole="button"
+          accessibilityLabel={`Open card index. Currently card ${index + 1} of ${orderedCards.length}`}
+          style={styles.jumpHandleWrap}
+        >
+          <View style={[styles.jumpHandleBar, { backgroundColor: theme.colors.textMuted }]} />
+        </View>
+      </GestureDetector>
+
       <CardJumpModal
         visible={jumpOpen}
         cards={orderedCards}
@@ -266,7 +294,6 @@ const styles = StyleSheet.create({
   titleWrap: { flex: 1, alignItems: "center" },
   titleDeck: { fontFamily: FONT_DISPLAY_ITALIC, fontSize: 13 },
   titleCount: { fontFamily: FONT_DISPLAY, fontSize: 15 },
-  titleHint: { fontSize: 13, opacity: 0.7 },
   cardArea: { flex: 1, padding: 16 },
   faceInner: { gap: 14, alignItems: "center" },
   hint: { fontFamily: FONT_DISPLAY, fontSize: 10, letterSpacing: 3, textTransform: "uppercase" },
@@ -275,4 +302,16 @@ const styles = StyleSheet.create({
   navLabel: { fontFamily: FONT_DISPLAY, fontSize: 14 },
   dots: { flexDirection: "row", gap: 6, alignItems: "center" },
   dot: { width: 6, height: 6, borderRadius: 3 },
+  jumpHandleWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 6,
+    paddingBottom: 14,
+  },
+  jumpHandleBar: {
+    width: 44,
+    height: 4,
+    borderRadius: 2,
+    opacity: 0.45,
+  },
 });
