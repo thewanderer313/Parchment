@@ -7,6 +7,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { FONT_SERIF } from "@/theme/fonts";
 import { CardEditor, type CardEditorValues } from "@/components/CardEditor";
 import { useUnsavedChangesGuard } from "@/lib/useUnsavedChangesGuard";
+import { PaperBackground } from "@/components/PaperBackground";
 
 export default function EditCardScreen() {
   const router = useRouter();
@@ -43,6 +44,7 @@ export default function EditCardScreen() {
   return (
     <SafeAreaView edges={["bottom", "left", "right"]} style={{ flex: 1, backgroundColor: theme.colors.bgApp }}>
       <Stack.Screen options={{ title: "Edit card" }} />
+      <PaperBackground seed={0xb74d28} />
       <CardEditor
         initial={{
           frontText: card.frontText, frontImages: card.frontImages,

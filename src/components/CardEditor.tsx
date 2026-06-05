@@ -4,7 +4,7 @@ import {
   KeyboardAvoidingView, Platform, Image,
 } from "react-native";
 import { useTheme } from "@/theme/ThemeProvider";
-import { FONT_SERIF } from "@/theme/fonts";
+import { FONT_SERIF, FONT_DISPLAY, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
 import { pickAndStoreImage } from "@/lib/image";
 import { MarkdownText } from "./MarkdownText";
 
@@ -28,6 +28,12 @@ function arrayEqual(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((x, i) => x === b[i]);
 }
 
+// Card composition screen — same editorial chrome as the rest of the
+// app. Front/Back as small-caps tabs in display serif, hairline-
+// bordered editor surface and preview frame, section labels with the
+// editorial rule treatment from Settings, primary CTA in display
+// serif. No structural changes to the prop API or markdown insertion
+// logic — only visual polish.
 export function CardEditor({ initial, onSubmit, onCancel, onDirtyChange }: Props) {
   const { theme } = useTheme();
   const [active, setActive] = useState<Side>("front");
@@ -104,45 +110,88 @@ export function CardEditor({ initial, onSubmit, onCancel, onDirtyChange }: Props
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={[styles.tabs, { borderColor: theme.colors.accentSoft }]}>
+      {/* Front / Back tabs — small-caps display serif with a hairline
+          rule under the row and a 1.5 px accent underline on the
+          active tab. Reads as an editorial section switch rather
+          than a generic segmented control. */}
+      <View style={[styles.tabs, { borderBottomColor: theme.colors.accentSoft }]}>
         <Pressable
           accessibilityRole="button"
           onPress={() => setActive("front")}
-          style={[styles.tab, active === "front" && { borderBottomColor: theme.colors.accentPrimary, borderBottomWidth: 2 }]}
+          style={[
+            styles.tab,
+            active === "front" && {
+              borderBottomColor: theme.colors.accentPrimary,
+              borderBottomWidth: 1.5,
+            },
+          ]}
         >
-          <Text style={[styles.tabLabel, { color: active === "front" ? theme.colors.textPrimary : theme.colors.textMuted }]}>Front</Text>
+          <Text
+            style={[
+              styles.tabLabel,
+              { color: active === "front" ? theme.colors.textPrimary : theme.colors.textMuted },
+            ]}
+          >
+            Front
+          </Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
           onPress={() => setActive("back")}
-          style={[styles.tab, active === "back" && { borderBottomColor: theme.colors.accentPrimary, borderBottomWidth: 2 }]}
+          style={[
+            styles.tab,
+            active === "back" && {
+              borderBottomColor: theme.colors.accentPrimary,
+              borderBottomWidth: 1.5,
+            },
+          ]}
         >
-          <Text style={[styles.tabLabel, { color: active === "back" ? theme.colors.textPrimary : theme.colors.textMuted }]}>Back</Text>
+          <Text
+            style={[
+              styles.tabLabel,
+              { color: active === "back" ? theme.colors.textPrimary : theme.colors.textMuted },
+            ]}
+          >
+            Back
+          </Text>
         </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        <View style={[styles.toolbar, { borderColor: theme.colors.accentSoft }]}>
+        {/* Markdown toolbar — hairline-bordered strip with the seven
+            wrapping/inserting buttons. Labels use display serif for
+            the alphabetic glyphs (B/I/H) so they sit consistently
+            with the rest of the chrome; symbol glyphs (•/1./</>/🔗)
+            stay as-is since the characters do the visual work. */}
+        <View
+          style={[
+            styles.toolbar,
+            {
+              borderColor: theme.colors.accentSoft,
+              backgroundColor: theme.colors.bgCard,
+            },
+          ]}
+        >
           <Pressable accessibilityLabel="Bold" onPress={() => insertAt("**", "**")} style={styles.toolBtn}>
-            <Text style={{ fontWeight: "700", color: theme.colors.textBody }}>B</Text>
+            <Text style={[styles.toolLabel, { fontFamily: FONT_DISPLAY, color: theme.colors.textBody }]}>B</Text>
           </Pressable>
           <Pressable accessibilityLabel="Italic" onPress={() => insertAt("*", "*")} style={styles.toolBtn}>
-            <Text style={{ fontStyle: "italic", color: theme.colors.textBody }}>I</Text>
+            <Text style={[styles.toolLabel, { fontFamily: FONT_DISPLAY_ITALIC, color: theme.colors.textBody }]}>I</Text>
           </Pressable>
           <Pressable accessibilityLabel="Heading" onPress={() => insertAt("# ", "", true)} style={styles.toolBtn}>
-            <Text style={{ fontWeight: "700", color: theme.colors.textBody }}>H</Text>
+            <Text style={[styles.toolLabel, { fontFamily: FONT_DISPLAY, color: theme.colors.textBody }]}>H</Text>
           </Pressable>
           <Pressable accessibilityLabel="Bullet list" onPress={() => insertAt("- ", "", true)} style={styles.toolBtn}>
-            <Text style={{ color: theme.colors.textBody }}>•</Text>
+            <Text style={[styles.toolLabel, { color: theme.colors.textBody, fontSize: 17 }]}>•</Text>
           </Pressable>
           <Pressable accessibilityLabel="Numbered list" onPress={() => insertAt("1. ", "", true)} style={styles.toolBtn}>
-            <Text style={{ color: theme.colors.textBody, fontSize: 13 }}>1.</Text>
+            <Text style={[styles.toolLabel, { fontFamily: FONT_DISPLAY_ITALIC, color: theme.colors.textBody, fontSize: 13 }]}>1.</Text>
           </Pressable>
           <Pressable accessibilityLabel="Inline code" onPress={() => insertAt("`", "`")} style={styles.toolBtn}>
-            <Text style={{ fontFamily: "Courier", color: theme.colors.textBody }}>{"</>"}</Text>
+            <Text style={[styles.toolLabel, { fontFamily: Platform.select({ ios: "Courier", android: "monospace" }), color: theme.colors.textBody, fontSize: 13 }]}>{"</>"}</Text>
           </Pressable>
           <Pressable accessibilityLabel="Link" onPress={() => insertAt("[", "](https://)")} style={styles.toolBtn}>
-            <Text style={{ color: theme.colors.textBody, fontSize: 14 }}>🔗</Text>
+            <Text style={[styles.toolLabel, { color: theme.colors.textBody, fontSize: 14 }]}>🔗</Text>
           </Pressable>
         </View>
 
@@ -154,18 +203,41 @@ export function CardEditor({ initial, onSubmit, onCancel, onDirtyChange }: Props
           placeholder={`${active === "front" ? "Front" : "Back"} markdown…`}
           placeholderTextColor={theme.colors.textMuted}
           multiline
-          style={[styles.input, { color: theme.colors.textPrimary, backgroundColor: theme.colors.bgCard, borderColor: theme.colors.accentSoft }]}
+          style={[
+            styles.input,
+            {
+              color: theme.colors.textPrimary,
+              backgroundColor: theme.colors.bgCard,
+              borderColor: theme.colors.accentSoft,
+            },
+          ]}
         />
 
-        <Text style={[styles.label, { color: theme.colors.textMuted }]}>Preview</Text>
+        <Text
+          style={[
+            styles.label,
+            { color: theme.colors.textMuted, borderBottomColor: theme.colors.accentSoft },
+          ]}
+        >
+          Preview
+        </Text>
         <View style={[styles.preview, { backgroundColor: theme.colors.bgCard, borderColor: theme.colors.accentSoft }]}>
           <MarkdownText>{text}</MarkdownText>
         </View>
 
-        <Text style={[styles.label, { color: theme.colors.textMuted }]}>Image</Text>
+        <Text
+          style={[
+            styles.label,
+            { color: theme.colors.textMuted, borderBottomColor: theme.colors.accentSoft },
+          ]}
+        >
+          Image
+        </Text>
         {images[0] ? (
-          <View style={{ gap: 10 }}>
-            <Image source={{ uri: images[0] }} style={styles.imagePreview} resizeMode="cover" />
+          <View style={{ gap: 12 }}>
+            <View style={[styles.imageFrame, { borderColor: theme.colors.accentSoft, backgroundColor: theme.colors.bgCard }]}>
+              <Image source={{ uri: images[0] }} style={styles.imagePreview} resizeMode="cover" />
+            </View>
             <Pressable onPress={() => setImages([])} style={[styles.btnGhost, { borderColor: theme.colors.accentSoft }]}>
               <Text style={[styles.btnGhostLabel, { color: theme.colors.textBody }]}>Remove image</Text>
             </Pressable>
@@ -196,38 +268,104 @@ export function CardEditor({ initial, onSubmit, onCancel, onDirtyChange }: Props
 }
 
 const styles = StyleSheet.create({
-  tabs: { flexDirection: "row", borderBottomWidth: 1, paddingHorizontal: 16 },
-  tab: { paddingVertical: 12, paddingHorizontal: 18 },
-  tabLabel: { fontFamily: FONT_SERIF, fontSize: 14, fontWeight: "600" },
-  body: { padding: 16, gap: 4 },
-  // 7 buttons need wrapping on narrower phones; flexWrap means they fold
-  // onto a second row gracefully instead of overflowing horizontally.
+  tabs: {
+    flexDirection: "row",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 16,
+  },
+  tab: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    // borderBottomWidth/Color are conditionally applied inline on the
+    // active tab — leaving them off the base style keeps the inactive
+    // row visually clean (no gap reserved for the underline).
+  },
+  tabLabel: {
+    fontFamily: FONT_DISPLAY,
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: 2.5,
+  },
+  body: { padding: 18, gap: 4 },
+  // Hairline-bordered toolbar; flexWrap so the seven buttons fall to a
+  // second row gracefully on narrower phones.
   toolbar: {
     flexDirection: "row",
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 10,
+    padding: 6,
     gap: 4,
     flexWrap: "wrap",
     alignSelf: "stretch",
-    marginBottom: 6,
+    marginBottom: 10,
   },
-  toolBtn: { paddingVertical: 4, paddingHorizontal: 10, minWidth: 32, alignItems: "center", justifyContent: "center" },
+  toolBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    minWidth: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 6,
+  },
+  toolLabel: { fontSize: 15 },
   input: {
-    fontFamily: FONT_SERIF, fontSize: 16,
-    borderWidth: 1, borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 10,
-    minHeight: 120, textAlignVertical: "top",
+    fontFamily: FONT_SERIF,
+    fontSize: 16,
+    lineHeight: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    minHeight: 140,
+    textAlignVertical: "top",
   },
+  // Editorial section label — display serif small caps with a
+  // hairline rule under, matching the Settings section breaks.
   label: {
-    fontFamily: FONT_SERIF, fontSize: 12, fontStyle: "italic",
-    marginTop: 14, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5,
+    fontFamily: FONT_DISPLAY,
+    fontSize: 11,
+    marginTop: 22,
+    marginBottom: 12,
+    textTransform: "uppercase",
+    letterSpacing: 2.5,
+    paddingBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  preview: { borderWidth: 1, borderRadius: 10, padding: 12, minHeight: 80 },
-  imagePreview: { width: "100%", aspectRatio: 16 / 9, borderRadius: 10 },
-  actions: { flexDirection: "row", justifyContent: "flex-end", gap: 12, marginTop: 20 },
-  btnGhost: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 999, borderWidth: 1, alignSelf: "flex-start" },
-  btnGhostLabel: { fontFamily: FONT_SERIF, fontSize: 14, fontWeight: "600" },
-  btnPrimary: { paddingHorizontal: 22, paddingVertical: 10, borderRadius: 999 },
-  btnPrimaryLabel: { fontFamily: FONT_SERIF, fontSize: 14, fontWeight: "600" },
+  preview: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    padding: 14,
+    minHeight: 90,
+  },
+  // Manuscript-style frame around the image preview — hairline border
+  // in accentSoft so it reads as a folio rather than a raw photo.
+  imageFrame: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  imagePreview: { width: "100%", aspectRatio: 16 / 9 },
+  actions: { flexDirection: "row", justifyContent: "flex-end", gap: 12, marginTop: 24 },
+  btnGhost: {
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignSelf: "flex-start",
+  },
+  btnGhostLabel: {
+    fontFamily: FONT_DISPLAY,
+    fontSize: 14,
+    letterSpacing: 0.2,
+  },
+  btnPrimary: {
+    paddingHorizontal: 26,
+    paddingVertical: 11,
+    borderRadius: 999,
+  },
+  btnPrimaryLabel: {
+    fontFamily: FONT_DISPLAY,
+    fontSize: 14,
+    letterSpacing: 0.5,
+  },
 });

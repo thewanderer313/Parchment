@@ -74,14 +74,24 @@ export default function StudyTab() {
               : `Pull a book down to read`}
           </Text>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Settings"
-          style={styles.gearBtn}
-          onPress={() => router.push("/settings" as never)}
-        >
-          <Text style={[styles.gearGlyph, { color: theme.colors.textMuted }]}>⚙</Text>
-        </Pressable>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Search"
+            style={styles.gearBtn}
+            onPress={() => router.push("/search" as never)}
+          >
+            <Text style={[styles.gearGlyph, { color: theme.colors.textMuted }]}>⌕</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+            style={styles.gearBtn}
+            onPress={() => router.push("/settings" as never)}
+          >
+            <Text style={[styles.gearGlyph, { color: theme.colors.textMuted }]}>⚙</Text>
+          </Pressable>
+        </View>
       </View>
 
       {decks.length === 0 ? (
