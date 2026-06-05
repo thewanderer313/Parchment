@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, Pressable, StyleSheet, useWindowDimensions } from "react-native";
+import { View, Text, Pressable, StyleSheet, useWindowDimensions, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS, Easing } from "react-native-reanimated";
@@ -211,12 +211,26 @@ export default function StudyScreen() {
             front={
               <View style={styles.faceInner}>
                 <Text style={[styles.hint, { color: theme.colors.textMuted }]}>FRONT</Text>
+                {current.frontImages[0] && (
+                  <Image
+                    source={{ uri: current.frontImages[0] }}
+                    style={[styles.cardImage, { borderColor: theme.colors.accentSoft }]}
+                    resizeMode="contain"
+                  />
+                )}
                 <MarkdownText>{current.frontText}</MarkdownText>
               </View>
             }
             back={
               <View style={styles.faceInner}>
                 <Text style={[styles.hint, { color: theme.colors.textMuted }]}>BACK</Text>
+                {current.backImages[0] && (
+                  <Image
+                    source={{ uri: current.backImages[0] }}
+                    style={[styles.cardImage, { borderColor: theme.colors.accentSoft }]}
+                    resizeMode="contain"
+                  />
+                )}
                 <MarkdownText>{current.backText}</MarkdownText>
               </View>
             }
@@ -297,6 +311,16 @@ const styles = StyleSheet.create({
   cardArea: { flex: 1, padding: 16 },
   faceInner: { gap: 14, alignItems: "center" },
   hint: { fontFamily: FONT_DISPLAY, fontSize: 10, letterSpacing: 3, textTransform: "uppercase" },
+  // Card image sits between the FRONT / BACK hint and the markdown
+  // text. resizeMode="contain" preserves aspect ratio; the hairline
+  // border + rounded corners give it the same manuscript-folio
+  // framing the card editor preview uses.
+  cardImage: {
+    width: "92%",
+    aspectRatio: 16 / 10,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
   bottomBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 14 },
   navBtn: { padding: 8 },
   navLabel: { fontFamily: FONT_DISPLAY, fontSize: 14 },
