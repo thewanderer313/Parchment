@@ -2,7 +2,7 @@
   "expo": {
     "name": "Parchment",
     "slug": "parchment",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "parchment",
@@ -15,7 +15,7 @@
     "android": {
       "package": "app.parchment.android",
       "adaptiveIcon": {
-        "backgroundColor": "#e8dec5",
+        "backgroundColor": "#cc9740",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -31,16 +31,18 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#e8dec5",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 180,
+          "backgroundColor": "#190901",
+          "image": "./assets/images/splashscreen.png",
+          "resizeMode": "cover",
           "android": {
-            "image": "./assets/images/splash-icon.png",
-            "imageWidth": 180
+            "backgroundColor": "#190901",
+            "image": "./assets/images/splashscreen.png",
+            "resizeMode": "cover"
           },
           "ios": {
-            "image": "./assets/images/splash-icon.png",
-            "imageWidth": 180
+            "backgroundColor": "#190901",
+            "image": "./assets/images/splashscreen.png",
+            "resizeMode": "cover"
           }
         }
       ],
