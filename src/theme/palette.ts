@@ -1,6 +1,6 @@
 export type ThemeMode = "light" | "dark";
 
-export const THEME_SELECTIONS = ["system", "light", "dark"] as const;
+export const THEME_SELECTIONS = ["system", "light", "dark", "leather"] as const;
 export type ThemeSelection = (typeof THEME_SELECTIONS)[number];
 
 export interface ThemeColors {
@@ -41,5 +41,33 @@ export const darkTheme: Theme = {
     textMuted: "#8aa37e",
     accentPrimary: "#7fb087",
     accentSoft: "#3a4438",
+  },
+};
+
+// "Leather" — a third theme styled after the deep, warm interior of
+// an aged study: rich saddle-brown backgrounds, parchment-cream text,
+// brass-gold for the primary accent (echoing gilt book-spine titles).
+// Classified as `mode: "dark"` so the status bar and any other
+// "is this a dark surface?" checks (PaperBackground vignette, etc.)
+// fall through to the dark-mode branch — which is correct, because
+// the leather palette is dark on top.
+export const leatherTheme: Theme = {
+  mode: "dark",
+  colors: {
+    // Deep saddle brown — the polished oak / leather chair feel.
+    bgApp: "#3d2818",
+    // A shade lighter so cards / sheets sit visibly above bgApp.
+    bgCard: "#4d3220",
+    // Warm parchment cream — sits high-contrast on the leather field.
+    textPrimary: "#f0e6cf",
+    // Slightly muted body text, like aged paper.
+    textBody: "#d4c2a0",
+    // Brass / aged-metallic for captions and quiet labels.
+    textMuted: "#a08648",
+    // Burnished gold — the colour of stamped book-spine titles.
+    accentPrimary: "#c79a3a",
+    // Lighter saddle for hairline borders and dividers, just enough
+    // contrast against bgApp to read at hairline weight.
+    accentSoft: "#6a4830",
   },
 };

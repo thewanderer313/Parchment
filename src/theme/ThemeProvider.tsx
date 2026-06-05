@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useMemo } from "react";
 import { useColorScheme } from "react-native";
-import { lightTheme, darkTheme, type Theme, type ThemeSelection } from "./palette";
+import { lightTheme, darkTheme, leatherTheme, type Theme, type ThemeSelection } from "./palette";
 
 interface ThemeContextValue {
   theme: Theme;
@@ -25,6 +25,9 @@ export function ThemeProvider({ children, mode }: Props) {
         break;
       case "dark":
         resolved = darkTheme;
+        break;
+      case "leather":
+        resolved = leatherTheme;
         break;
       case "system":
         resolved = systemScheme === "dark" ? darkTheme : lightTheme;

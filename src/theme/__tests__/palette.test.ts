@@ -1,4 +1,4 @@
-import { lightTheme, darkTheme, type Theme } from "../palette";
+import { lightTheme, darkTheme, leatherTheme, THEME_SELECTIONS, type Theme } from "../palette";
 
 describe("theme palette", () => {
   it("defines every required token in the light theme", () => {
@@ -45,5 +45,25 @@ describe("theme palette", () => {
     expect(Object.keys(lightTheme.colors).sort()).toEqual(
       Object.keys(darkTheme.colors).sort()
     );
+  });
+
+  it("defines every required token in the leather theme", () => {
+    const required: Array<keyof Theme["colors"]> = [
+      "bgApp", "bgCard", "textPrimary", "textBody",
+      "textMuted", "accentPrimary", "accentSoft",
+    ];
+    for (const key of required) {
+      expect(leatherTheme.colors[key]).toMatch(/^#[0-9a-fA-F]{6}$/);
+    }
+  });
+
+  it("classifies the leather theme as a dark surface", () => {
+    // mode = "dark" so PaperBackground vignette, StatusBar tint, and
+    // any other "is this a dark theme?" branches do the right thing.
+    expect(leatherTheme.mode).toBe("dark");
+  });
+
+  it("exposes leather as a selectable theme option", () => {
+    expect(THEME_SELECTIONS).toContain("leather");
   });
 });

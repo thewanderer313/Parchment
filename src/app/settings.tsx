@@ -65,7 +65,13 @@ export default function SettingsScreen() {
                   { color: themeMode === mode ? theme.colors.bgCard : theme.colors.textBody },
                 ]}
               >
-                {mode === "system" ? "System" : mode === "light" ? "Light" : "Dark"}
+                {mode === "system"
+                  ? "System"
+                  : mode === "light"
+                  ? "Light"
+                  : mode === "dark"
+                  ? "Dark"
+                  : "Leather"}
               </Text>
             </Pressable>
           ))}
