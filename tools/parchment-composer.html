@@ -224,6 +224,86 @@
     margin-top: 10px;
     gap: 8px;
   }
+  /* Collapsed-row variant for cards not currently being edited.
+     Lets 200+ cards stay scannable without endless scrolling. */
+  .card-collapsed {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--accent-soft);
+    background: rgba(232, 222, 197, 0.45);
+    cursor: pointer;
+    margin-bottom: 6px;
+    user-select: none;
+  }
+  .card-collapsed:hover { background: rgba(245, 236, 212, 0.75); }
+  .card-collapsed .number {
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 13px;
+    min-width: 56px;
+    flex-shrink: 0;
+  }
+  .card-collapsed .preview-text {
+    flex: 1;
+    color: var(--text-body);
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .card-collapsed .preview-text.empty {
+    font-style: italic;
+    color: var(--text-muted);
+  }
+  .card-collapsed .img-indicator {
+    font-size: 13px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .card-collapsed .quick-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .card-collapsed .quick-actions button {
+    background: var(--bg-app);
+    border: 1px solid var(--accent-soft);
+    border-radius: 5px;
+    padding: 4px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    color: var(--text-body);
+    font-family: var(--serif);
+  }
+  .card-collapsed .quick-actions button:hover { background: var(--accent-soft); }
+  .card-collapsed .quick-actions button.danger { color: var(--danger); }
+  .collapse-toggle {
+    background: var(--bg-app);
+    border: 1px solid var(--accent-soft);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-family: var(--serif);
+    font-size: 12px;
+    color: var(--text-body);
+    cursor: pointer;
+  }
+  .collapse-toggle:hover { background: var(--accent-soft); }
+  .card-list-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .card-list-actions .count {
+    margin-left: auto;
+    align-self: center;
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 12px;
+  }
   .btn {
     background: var(--accent);
     color: var(--bg-card);
@@ -313,6 +393,10 @@
 
   <div class="panel">
     <h2>Cards</h2>
+    <div class="card-list-actions">
+      <button class="btn ghost collapse-toggle" id="collapseAllBtn" tabindex="-1">Collapse all</button>
+      <span class="count" id="cardCount"></span>
+    </div>
     <div id="cardsContainer"></div>
     <button class="btn" id="addCardBtn">+ Add card</button>
   </div>
@@ -344,6 +428,9 @@
 
 // ---------- State ----------
 let state = blankState();
+// Which card is currently expanded (id, not index — survives reorder /
+// delete). UI-only, never persisted to draft. null = all collapsed.
+let expandedId = null;
 
 function blankState() {
   return {
@@ -428,6 +515,116 @@ function renderMarkdown(text) {
 const $ = function (id) { return document.getElementById(id); };
 const cardsContainer = $("cardsContainer");
 
+function previewLine(s) {
+  // Strip the most common markdown noise so the collapsed row is readable.
+  // Not a full markdown render — just a quick clean-up.
+  const cleaned = (s || "")
+    .replace(/[*_`#]/g, "")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return "";
+  return cleaned.length > 120 ? cleaned.slice(0, 120) + "…" : cleaned;
+}
+
+function escapeAttr(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function renderCollapsedRow(c, idx) {
+  const preview = previewLine(c.front_text);
+  const isEmpty = !preview;
+  const hasImg = (c.front_images && c.front_images.length) || (c.back_images && c.back_images.length);
+  const moveUp = idx > 0
+    ? '<button data-act="move-up" data-idx="' + idx + '" tabindex="-1" title="Move up">↑</button>'
+    : "";
+  const moveDown = idx < state.cards.length - 1
+    ? '<button data-act="move-down" data-idx="' + idx + '" tabindex="-1" title="Move down">↓</button>'
+    : "";
+  const del = state.cards.length > 1
+    ? '<button class="danger" data-act="delete-card" data-idx="' + idx + '" tabindex="-1" title="Delete">×</button>'
+    : "";
+  return (
+    '<div class="card-collapsed" data-act="expand-card" data-idx="' + idx + '" tabindex="-1">' +
+      '<div class="number">Card ' + (idx + 1) + '</div>' +
+      '<div class="preview-text' + (isEmpty ? " empty" : "") + '">' +
+        (isEmpty ? "(empty)" : escapeHtml(preview)) +
+      '</div>' +
+      (hasImg ? '<div class="img-indicator">🖼</div>' : '') +
+      '<div class="quick-actions">' +
+        '<button data-act="expand-card" data-idx="' + idx + '" tabindex="-1">Edit</button>' +
+        moveUp + moveDown + del +
+      '</div>' +
+    '</div>'
+  );
+}
+
+function renderExpandedCard(c, idx) {
+  const moveUp = idx > 0
+    ? '<button class="btn ghost" data-act="move-up" data-idx="' + idx + '" tabindex="-1">↑ Move up</button>'
+    : "";
+  const moveDown = idx < state.cards.length - 1
+    ? '<button class="btn ghost" data-act="move-down" data-idx="' + idx + '" tabindex="-1">↓ Move down</button>'
+    : "";
+  const del = state.cards.length > 1
+    ? '<button class="btn ghost" data-act="delete-card" data-idx="' + idx + '" tabindex="-1">Delete card</button>'
+    : "";
+  return (
+    '<div class="card-block">' +
+      '<div class="header-row">' +
+        '<div class="label">Card ' + (idx + 1) + (state.cards.length > 1 ? ' of ' + state.cards.length : '') + '</div>' +
+        '<button class="collapse-toggle" data-act="collapse-card" tabindex="-1">Collapse ↑</button>' +
+      '</div>' +
+      '<div class="sides">' +
+        '<div class="side">' +
+          '<h4>Front · Markdown</h4>' +
+          '<div class="toolbar" data-side="front" data-idx="' + idx + '">' +
+            '<button data-act="bold" tabindex="-1"><strong>B</strong></button>' +
+            '<button data-act="italic" tabindex="-1"><em>I</em></button>' +
+            '<button data-act="h" tabindex="-1"><strong>H</strong></button>' +
+            '<button data-act="ul" tabindex="-1">•</button>' +
+            '<button data-act="ol" tabindex="-1">1.</button>' +
+            '<button data-act="code" tabindex="-1">&lt;/&gt;</button>' +
+            '<button data-act="link" tabindex="-1">🔗</button>' +
+          '</div>' +
+          '<textarea data-side="front" data-idx="' + idx + '" rows="6">' + escapeHtml(c.front_text) + '</textarea>' +
+          '<div class="image-row">' +
+            '<div class="thumb" style="' + (c.front_images.length ? 'background-image:url(' + escapeAttr(c.front_images[0]) + ')' : '') + '"></div>' +
+            '<span class="file-name">' + escapeHtml(c.front_file_name || (c.front_images.length ? "image" : "no image")) + '</span>' +
+            '<button data-act="choose-img" data-side="front" data-idx="' + idx + '" tabindex="-1">Choose…</button>' +
+            (c.front_images.length ? '<button data-act="remove-img" data-side="front" data-idx="' + idx + '" tabindex="-1">Remove</button>' : "") +
+          '</div>' +
+          '<h4 style="margin-top:10px">Preview</h4>' +
+          '<div class="preview" data-preview="front" data-idx="' + idx + '">' + renderMarkdown(c.front_text) + '</div>' +
+        '</div>' +
+        '<div class="side">' +
+          '<h4>Back · Markdown</h4>' +
+          '<div class="toolbar" data-side="back" data-idx="' + idx + '">' +
+            '<button data-act="bold" tabindex="-1"><strong>B</strong></button>' +
+            '<button data-act="italic" tabindex="-1"><em>I</em></button>' +
+            '<button data-act="h" tabindex="-1"><strong>H</strong></button>' +
+            '<button data-act="ul" tabindex="-1">•</button>' +
+            '<button data-act="ol" tabindex="-1">1.</button>' +
+            '<button data-act="code" tabindex="-1">&lt;/&gt;</button>' +
+            '<button data-act="link" tabindex="-1">🔗</button>' +
+          '</div>' +
+          '<textarea data-side="back" data-idx="' + idx + '" rows="6">' + escapeHtml(c.back_text) + '</textarea>' +
+          '<div class="image-row">' +
+            '<div class="thumb" style="' + (c.back_images.length ? 'background-image:url(' + escapeAttr(c.back_images[0]) + ')' : '') + '"></div>' +
+            '<span class="file-name">' + escapeHtml(c.back_file_name || (c.back_images.length ? "image" : "no image")) + '</span>' +
+            '<button data-act="choose-img" data-side="back" data-idx="' + idx + '" tabindex="-1">Choose…</button>' +
+            (c.back_images.length ? '<button data-act="remove-img" data-side="back" data-idx="' + idx + '" tabindex="-1">Remove</button>' : "") +
+          '</div>' +
+          '<h4 style="margin-top:10px">Preview</h4>' +
+          '<div class="preview" data-preview="back" data-idx="' + idx + '">' + renderMarkdown(c.back_text) + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card-actions">' + del + moveUp + moveDown + '</div>' +
+    '</div>'
+  );
+}
+
 function render() {
   $("deckEmoji").value = state.deck.emoji;
   $("deckName").value = state.deck.name;
@@ -440,67 +637,18 @@ function render() {
     $("coverPreviewRow").classList.add("hidden");
   }
 
-  cardsContainer.innerHTML = "";
-  state.cards.forEach(function (c, idx) {
-    const block = document.createElement("div");
-    block.className = "card-block";
-    block.innerHTML = `
-      <div class="header-row">
-        <div class="label">Card ${idx + 1}</div>
-        <div class="pos">${state.cards.length === 1 ? "only card" : (idx + 1) + " of " + state.cards.length}</div>
-      </div>
-      <div class="sides">
-        <div class="side">
-          <h4>Front · Markdown</h4>
-          <div class="toolbar" data-side="front" data-idx="${idx}">
-            <button data-act="bold"><strong>B</strong></button>
-            <button data-act="italic"><em>I</em></button>
-            <button data-act="h"><strong>H</strong></button>
-            <button data-act="ul">•</button>
-            <button data-act="ol">1.</button>
-            <button data-act="code">&lt;/&gt;</button>
-            <button data-act="link">🔗</button>
-          </div>
-          <textarea data-side="front" data-idx="${idx}" rows="6">${c.front_text.replace(/</g, "&lt;")}</textarea>
-          <div class="image-row">
-            <div class="thumb" style="${c.front_images.length ? 'background-image:url(' + c.front_images[0] + ')' : ''}"></div>
-            <span class="file-name">${c.front_file_name || (c.front_images.length ? "image" : "no image")}</span>
-            <button data-act="choose-img" data-side="front" data-idx="${idx}">Choose…</button>
-            ${c.front_images.length ? '<button data-act="remove-img" data-side="front" data-idx="' + idx + '">Remove</button>' : ""}
-          </div>
-          <h4 style="margin-top:10px">Preview</h4>
-          <div class="preview" data-preview="front" data-idx="${idx}">${renderMarkdown(c.front_text)}</div>
-        </div>
-        <div class="side">
-          <h4>Back · Markdown</h4>
-          <div class="toolbar" data-side="back" data-idx="${idx}">
-            <button data-act="bold"><strong>B</strong></button>
-            <button data-act="italic"><em>I</em></button>
-            <button data-act="h"><strong>H</strong></button>
-            <button data-act="ul">•</button>
-            <button data-act="ol">1.</button>
-            <button data-act="code">&lt;/&gt;</button>
-            <button data-act="link">🔗</button>
-          </div>
-          <textarea data-side="back" data-idx="${idx}" rows="6">${c.back_text.replace(/</g, "&lt;")}</textarea>
-          <div class="image-row">
-            <div class="thumb" style="${c.back_images.length ? 'background-image:url(' + c.back_images[0] + ')' : ''}"></div>
-            <span class="file-name">${c.back_file_name || (c.back_images.length ? "image" : "no image")}</span>
-            <button data-act="choose-img" data-side="back" data-idx="${idx}">Choose…</button>
-            ${c.back_images.length ? '<button data-act="remove-img" data-side="back" data-idx="' + idx + '">Remove</button>' : ""}
-          </div>
-          <h4 style="margin-top:10px">Preview</h4>
-          <div class="preview" data-preview="back" data-idx="${idx}">${renderMarkdown(c.back_text)}</div>
-        </div>
-      </div>
-      <div class="card-actions">
-        ${state.cards.length > 1 ? '<button class="btn ghost" data-act="delete-card" data-idx="' + idx + '">Delete card</button>' : ""}
-        ${idx > 0 ? '<button class="btn ghost" data-act="move-up" data-idx="' + idx + '">↑ Move up</button>' : ""}
-        ${idx < state.cards.length - 1 ? '<button class="btn ghost" data-act="move-down" data-idx="' + idx + '">↓ Move down</button>' : ""}
-      </div>
-    `;
-    cardsContainer.appendChild(block);
-  });
+  // If the expanded id has been deleted out from under us, clear it.
+  if (expandedId && !state.cards.some(function (c) { return c.id === expandedId; })) {
+    expandedId = null;
+  }
+
+  $("cardCount").textContent = state.cards.length === 1
+    ? "1 card"
+    : state.cards.length + " cards";
+
+  cardsContainer.innerHTML = state.cards.map(function (c, idx) {
+    return c.id === expandedId ? renderExpandedCard(c, idx) : renderCollapsedRow(c, idx);
+  }).join("");
 }
 
 // ---------- Event handling ----------
@@ -570,6 +718,13 @@ function removeImage(idx, side) {
 function deleteCard(idx) {
   state.cards.splice(idx, 1);
   if (state.cards.length === 0) state.cards.push(newCard());
+  // If the deleted card was the expanded one, expand the one that took
+  // its slot (or the previous card if we deleted the last).
+  if (state.cards.length > 0) {
+    expandedId = state.cards[Math.min(idx, state.cards.length - 1)].id;
+  } else {
+    expandedId = null;
+  }
   render();
   setStatus("");
 }
@@ -582,6 +737,39 @@ function moveCard(idx, dir) {
   state.cards[target] = tmp;
   render();
   setStatus("");
+}
+
+function expandCard(idx) {
+  expandedId = state.cards[idx].id;
+  render();
+  // After render, the textarea exists in DOM — focus it.
+  focusFrontTextarea();
+}
+
+function collapseCurrentCard() {
+  expandedId = null;
+  render();
+}
+
+function focusFrontTextarea() {
+  // Wait one frame so the DOM update is committed.
+  requestAnimationFrame(function () {
+    const idx = state.cards.findIndex(function (c) { return c.id === expandedId; });
+    if (idx < 0) return;
+    const ta = document.querySelector('textarea[data-side="front"][data-idx="' + idx + '"]');
+    if (ta) {
+      ta.focus();
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+    }
+  });
+}
+
+function addCardAndExpand() {
+  const c = newCard();
+  state.cards.push(c);
+  expandedId = c.id;
+  render();
+  focusFrontTextarea();
 }
 
 function chooseCover() {
@@ -601,7 +789,11 @@ function setStatus(msg) {
 }
 function saveDraft() {
   try {
-    localStorage.setItem("parchment-composer-draft", JSON.stringify(state));
+    // Persist deck + cards only — never the runtime expandedId UI state.
+    localStorage.setItem("parchment-composer-draft", JSON.stringify({
+      deck: state.deck,
+      cards: state.cards,
+    }));
     setStatus("Draft saved.");
   } catch (e) {
     setStatus("Couldn't save: " + e.message);
@@ -613,6 +805,8 @@ function loadDraft() {
     if (!raw) { setStatus("No draft saved yet."); return; }
     state = JSON.parse(raw);
     if (!state.cards || state.cards.length === 0) state.cards = [newCard()];
+    // Open the first card so the editor isn't blank on load.
+    expandedId = state.cards[0].id;
     render();
     setStatus("Draft loaded.");
   } catch (e) {
@@ -622,6 +816,7 @@ function loadDraft() {
 function clearAll() {
   if (!confirm("Clear all deck info and cards? This can't be undone (the saved draft stays in localStorage).")) return;
   state = blankState();
+  expandedId = state.cards[0] ? state.cards[0].id : null;
   render();
   setStatus("");
 }
@@ -798,10 +993,13 @@ document.addEventListener("click", function (e) {
     case "delete-card": deleteCard(idx); break;
     case "move-up": moveCard(idx, -1); break;
     case "move-down": moveCard(idx, +1); break;
+    case "expand-card": expandCard(idx); break;
+    case "collapse-card": collapseCurrentCard(); break;
   }
   // top-level buttons by id
   switch (t.id) {
-    case "addCardBtn": state.cards.push(newCard()); render(); break;
+    case "addCardBtn": addCardAndExpand(); break;
+    case "collapseAllBtn": collapseCurrentCard(); break;
     case "saveDraftBtn": saveDraft(); break;
     case "loadDraftBtn": loadDraft(); break;
     case "clearBtn": clearAll(); break;
@@ -844,6 +1042,9 @@ $("jsonInput").addEventListener("change", function (e) {
       }
     }
   } catch (_e) { /* ignore */ }
+  // Expand the first card by default so the user has something to type into
+  // when the page loads.
+  expandedId = state.cards[0] ? state.cards[0].id : null;
   render();
 })();
 
