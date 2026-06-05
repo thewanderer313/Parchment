@@ -32,11 +32,17 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#190901",
+          "image": "./assets/images/picon.png",
+          "imageWidth": 120,
           "android": {
-            "backgroundColor": "#190901"
+            "backgroundColor": "#190901",
+            "image": "./assets/images/picon.png",
+            "imageWidth": 120
           },
           "ios": {
-            "backgroundColor": "#190901"
+            "backgroundColor": "#190901",
+            "image": "./assets/images/picon.png",
+            "imageWidth": 120
           }
         }
       ],
