@@ -1,9 +1,12 @@
 // Visual layout helpers for the Study tab's bookshelf.
 //
-// Each deck becomes a "book" on a shelf. Width, height, and spine color
-// are derived from a stable hash of the deck id so the same deck always
-// looks the same on the shelf (same spine, same color) but across many
-// decks the row has visual variety — the way a real bookshelf does.
+// Each deck becomes a "book" on a shelf. Height and spine color are
+// derived from a stable hash of the deck id so the same deck always
+// looks the same (same colour, same height). Width tracks CARD COUNT
+// on a log curve so a 200-card deck stands visibly thicker than a
+// 10-card one — like real books on a shelf where thicker spines hold
+// more pages — with a small id-based jitter on top so two decks with
+// the same count don't look identical.
 //
 // `packIntoShelves` greedily packs spines into rows that fit within
 // `shelfWidth`. A row gets at least one book even if the book is wider
@@ -16,6 +19,10 @@ const SPINE_MIN_WIDTH = 52;
 const SPINE_MAX_WIDTH = 80;
 const SPINE_MIN_HEIGHT = 142;
 const SPINE_MAX_HEIGHT = 178;
+// Card-count anchor: at and beyond this many cards the spine is at
+// SPINE_MAX_WIDTH. Chosen so a "fat textbook" feel kicks in around
+// 200 cards while preserving room for a handful of books per shelf.
+const WIDTH_MAX_CARDS = 200;
 
 // Curated dark leather/cloth tones — every spine reads as a real bound
 // book, never as a colored UI rectangle. Cream text sits legibly on
@@ -52,9 +59,29 @@ export interface SpineDims {
   color: string;
 }
 
-export function dimsForDeck(deck: Deck): SpineDims {
+// Map card count → spine width on a log curve so small differences at
+// the low end (3 vs 15 cards) are visible but large differences at the
+// high end (250 vs 500 cards) don't run away. The +1 inside log avoids
+// log(0) and lifts the 0-card case off the floor; min() caps so a
+// 1000-card deck doesn't dominate the shelf.
+function widthForCardCount(cardCount: number): number {
+  const clamped = Math.max(0, Math.min(WIDTH_MAX_CARDS, cardCount));
+  const ratio = Math.log(1 + clamped) / Math.log(1 + WIDTH_MAX_CARDS);
+  return SPINE_MIN_WIDTH + (SPINE_MAX_WIDTH - SPINE_MIN_WIDTH) * ratio;
+}
+
+export function dimsForDeck(deck: Deck, cardCount: number): SpineDims {
   const h = hashId(deck.id);
-  const width = SPINE_MIN_WIDTH + (h % (SPINE_MAX_WIDTH - SPINE_MIN_WIDTH + 1));
+  // Width = card-count base + a small ±3 px hash-driven jitter so two
+  // decks with the same card count don't look perfectly identical on
+  // the shelf. Clamped back into [MIN, MAX] in case the jitter would
+  // push it out.
+  const base = widthForCardCount(cardCount);
+  const jitter = (h % 7) - 3; // -3..+3
+  const width = Math.max(
+    SPINE_MIN_WIDTH,
+    Math.min(SPINE_MAX_WIDTH, Math.round(base + jitter))
+  );
   const height = SPINE_MIN_HEIGHT + ((h >> 8) % (SPINE_MAX_HEIGHT - SPINE_MIN_HEIGHT + 1));
   const color = SPINE_COLORS[(h >> 16) % SPINE_COLORS.length];
   return { width, height, color };
@@ -71,12 +98,16 @@ export interface ShelfRow {
 // stay stable across renders even when reordering changes pack output.
 const GAP = 8;
 
-export function packIntoShelves(decks: Deck[], shelfWidth: number): ShelfRow[] {
+export function packIntoShelves(
+  decks: Deck[],
+  counts: Record<string, number>,
+  shelfWidth: number
+): ShelfRow[] {
   const rows: ShelfRow[] = [];
   let current: ShelfRow["books"] = [];
   let currentWidth = 0;
   for (const deck of decks) {
-    const dims = dimsForDeck(deck);
+    const dims = dimsForDeck(deck, counts[deck.id] ?? 0);
     const widthIfAdded = currentWidth === 0 ? dims.width : currentWidth + GAP + dims.width;
     if (current.length > 0 && widthIfAdded > shelfWidth) {
       rows.push({ id: current[0].deck.id, books: current });

@@ -36,7 +36,7 @@ export default function StudyTab() {
   // Recomputed when the window resizes (rotation, foldable, etc.) so
   // the packing stays sensible.
   const shelfWidth = windowWidth - 40;
-  const shelves = useMemo(() => packIntoShelves(decks, shelfWidth), [decks, shelfWidth]);
+  const shelves = useMemo(() => packIntoShelves(decks, counts, shelfWidth), [decks, counts, shelfWidth]);
 
   const menuItems: ActionSheetItem[] = menuDeck
     ? [
