@@ -53,10 +53,22 @@ function hashId(id: string): number {
   return h >>> 0;
 }
 
+// Fallback emblem glyphs for spines whose deck has no emoji. A curated
+// mix of fleurons, diamonds, and stars — picked because they all
+// render as serif text glyphs on every platform (no risk of one
+// turning into a colour emoji on iOS) and because at 16 pt they read
+// as "old book spine stamping" rather than UI icon. The deck id hash
+// picks an index so each emoji-less deck stays visually distinct but
+// stable across renders, instead of a wall of identical ✦'s.
+export const SPINE_FALLBACK_EMBLEMS = ["❦", "❧", "❖", "✦", "◆", "❉"] as const;
+
 export interface SpineDims {
   width: number;
   height: number;
   color: string;
+  /** Glyph to display at the head of the spine when the deck has no
+   *  emoji. Deterministic per deck id. */
+  fallbackEmblem: string;
 }
 
 // Map card count → spine width on a log curve so small differences at
@@ -84,7 +96,13 @@ export function dimsForDeck(deck: Deck, cardCount: number): SpineDims {
   );
   const height = SPINE_MIN_HEIGHT + ((h >> 8) % (SPINE_MAX_HEIGHT - SPINE_MIN_HEIGHT + 1));
   const color = SPINE_COLORS[(h >> 16) % SPINE_COLORS.length];
-  return { width, height, color };
+  // High bits of the hash are still untouched (width used low 3 bits,
+  // height used next 6, color used next 3) — use shift 24 to pick the
+  // fallback emblem from a slice the previous picks haven't already
+  // depended on.
+  const fallbackEmblem =
+    SPINE_FALLBACK_EMBLEMS[(h >>> 24) % SPINE_FALLBACK_EMBLEMS.length];
+  return { width, height, color, fallbackEmblem };
 }
 
 export interface ShelfRow {

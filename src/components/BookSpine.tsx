@@ -95,7 +95,7 @@ export function BookSpine({ deck, cardCount, dims, onPress, onLongPress }: Props
 
       {/* Top decoration: deck emoji at the head of the spine */}
       <View style={styles.headDecor}>
-        <Text style={styles.emoji}>{deck.emoji ?? "✦"}</Text>
+        <Text style={styles.emoji}>{deck.emoji ?? dims.fallbackEmblem}</Text>
       </View>
 
       {/* Vertical title: text is rotated -90° within an absolutely-
