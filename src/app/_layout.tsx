@@ -42,8 +42,9 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 // take in the title-page art before the app comes alive. If hydration
 // takes longer than this we'll still wait for the data; this floor
 // just prevents the splash from disappearing in a split second when
-// boot is fast.
-const MIN_FULL_VISIBILITY_MS = 1800;
+// boot is fast. User-tuned to 1.5 s: long enough to land the art, not
+// so long that returning users feel made to wait.
+const MIN_FULL_VISIBILITY_MS = 1500;
 
 type BootStatus = "loading" | "ready" | "error";
 
