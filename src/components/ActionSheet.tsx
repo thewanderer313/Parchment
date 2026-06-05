@@ -71,7 +71,16 @@ export function ActionSheet({ visible, title, items, onClose }: Props) {
                   style={[
                     styles.itemLabel,
                     {
-                      color: item.destructive ? "#a82020" : theme.colors.textBody,
+                      // Destructive tone is theme-aware — the light-mode
+                      // deep red reads as muddy/under-saturated on the
+                      // dark bgCard slate. Brighter, slightly less
+                      // saturated red lifts off the dark surface
+                      // without screaming alarm.
+                      color: item.destructive
+                        ? theme.mode === "light"
+                          ? "#a82020"
+                          : "#e08080"
+                        : theme.colors.textBody,
                       fontWeight: item.destructive ? "700" : "600",
                     },
                   ]}
