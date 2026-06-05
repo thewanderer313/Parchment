@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   View, Text, TextInput, Pressable, StyleSheet, ScrollView,
-  KeyboardAvoidingView, Platform, Image,
+  KeyboardAvoidingView, Platform,
 } from "react-native";
+// expo-image so GIF previews animate cross-platform.
+import { Image } from "expo-image";
 import { useTheme } from "@/theme/ThemeProvider";
 import { FONT_SERIF, FONT_DISPLAY, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
 import { pickAndStoreImage } from "@/lib/image";
@@ -236,7 +238,7 @@ export function CardEditor({ initial, onSubmit, onCancel, onDirtyChange }: Props
         {images[0] ? (
           <View style={{ gap: 12 }}>
             <View style={[styles.imageFrame, { borderColor: theme.colors.accentSoft, backgroundColor: theme.colors.bgCard }]}>
-              <Image source={{ uri: images[0] }} style={styles.imagePreview} resizeMode="cover" />
+              <Image source={{ uri: images[0] }} style={styles.imagePreview} contentFit="cover" />
             </View>
             <Pressable onPress={() => setImages([])} style={[styles.btnGhost, { borderColor: theme.colors.accentSoft }]}>
               <Text style={[styles.btnGhostLabel, { color: theme.colors.textBody }]}>Remove image</Text>

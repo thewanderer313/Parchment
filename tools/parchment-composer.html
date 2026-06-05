@@ -769,6 +769,10 @@ const SHRINK_THRESHOLD_BYTES = 400 * 1024;
 function needsShrinking(uri) {
   return !!uri && typeof uri === "string" &&
     uri.indexOf("data:image/") === 0 &&
+    // Skip animated GIFs — canvas-based recompression would freeze
+    // the animation to a single frame. The phone app handles GIFs
+    // by copying them through unchanged, so we do the same here.
+    uri.indexOf("data:image/gif") !== 0 &&
     approxBytes(uri) > SHRINK_THRESHOLD_BYTES;
 }
 
@@ -786,6 +790,21 @@ function shrinkDataUri(origDataUri, maxEdge, quality) {
   if (quality === undefined) quality = 0.85;
   return new Promise(function (resolve, reject) {
     if (!origDataUri || origDataUri.indexOf("data:image/") !== 0) {
+      resolve({
+        dataUri: origDataUri,
+        origBytes: approxBytes(origDataUri),
+        newBytes: approxBytes(origDataUri),
+        width: 0,
+        height: 0,
+        changed: false,
+      });
+      return;
+    }
+    // Animated GIF: passing it through canvas would freeze the
+    // animation. Embed as-is. The phone app's importer skips its
+    // manipulator for the same reason, so the round-trip stays
+    // animated end to end.
+    if (origDataUri.indexOf("data:image/gif") === 0) {
       resolve({
         dataUri: origDataUri,
         origBytes: approxBytes(origDataUri),

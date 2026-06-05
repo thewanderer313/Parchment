@@ -4,10 +4,11 @@ import {
   Text,
   Pressable,
   StyleSheet,
-  Image,
   ScrollView,
   useWindowDimensions,
 } from "react-native";
+// expo-image so a GIF deck cover animates cross-platform.
+import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, {
   Easing,
@@ -138,7 +139,7 @@ export default function CoverScreen() {
                 <Image
                   source={{ uri: deck.coverImage as string }}
                   style={styles.coverImageFull}
-                  resizeMode="cover"
+                  contentFit="cover"
                 />
                 {/* Title cartouche overlaid on the cover image. Semi-
                     translucent so the cover art shows through behind

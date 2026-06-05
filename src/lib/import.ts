@@ -80,12 +80,17 @@ async function ensureImageDir() {
 }
 
 async function dataUriToFile(uri: string, prefix?: string): Promise<string> {
-  const m = /^data:image\/[a-z]+;base64,(.*)$/i.exec(uri);
+  // Capture the subtype so we know whether the payload is a GIF (which
+  // must keep its .gif extension or expo-image won't animate it) or
+  // something we can safely write as .jpg.
+  const m = /^data:image\/([a-z]+);base64,(.*)$/i.exec(uri);
   if (!m) return uri;
+  const subtype = m[1].toLowerCase();
+  const ext = subtype === "gif" ? "gif" : "jpg";
   await ensureImageDir();
   const tag = prefix ? `${prefix}_` : "";
-  const dest = `${IMAGE_DIR}${tag}${newUuid()}.jpg`;
-  await FileSystem.writeAsStringAsync(dest, m[1], {
+  const dest = `${IMAGE_DIR}${tag}${newUuid()}.${ext}`;
+  await FileSystem.writeAsStringAsync(dest, m[2], {
     encoding: FileSystem.EncodingType.Base64,
   });
   return dest;

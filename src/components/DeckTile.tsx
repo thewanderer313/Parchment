@@ -1,5 +1,7 @@
 import React from "react";
-import { View, Text, Pressable, StyleSheet, Image } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
+// expo-image so a GIF deck cover animates cross-platform.
+import { Image } from "expo-image";
 import { useTheme } from "@/theme/ThemeProvider";
 import { FONT_SERIF, FONT_DISPLAY, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
 import type { Deck } from "@/store/decksStore";
@@ -43,7 +45,7 @@ export function DeckTile({ deck, cardCount, onPress, onLongPress }: Props) {
           testID="deck-cover-image"
           source={{ uri: deck.coverImage as string }}
           style={styles.cover}
-          resizeMode="cover"
+          contentFit="cover"
         />
       )}
       <View style={[styles.body, hasCover && styles.bodyWithCover]}>

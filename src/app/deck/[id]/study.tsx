@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, Pressable, StyleSheet, useWindowDimensions, Image } from "react-native";
+import { View, Text, Pressable, StyleSheet, useWindowDimensions } from "react-native";
+// expo-image (vs react-native's stock Image) animates GIFs on both
+// iOS and Android; stock Image only animates on iOS.
+import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS, Easing } from "react-native-reanimated";
@@ -215,7 +218,7 @@ export default function StudyScreen() {
                   <Image
                     source={{ uri: current.frontImages[0] }}
                     style={[styles.cardImage, { borderColor: theme.colors.accentSoft }]}
-                    resizeMode="contain"
+                    contentFit="contain"
                   />
                 )}
                 <MarkdownText>{current.frontText}</MarkdownText>
@@ -228,7 +231,7 @@ export default function StudyScreen() {
                   <Image
                     source={{ uri: current.backImages[0] }}
                     style={[styles.cardImage, { borderColor: theme.colors.accentSoft }]}
-                    resizeMode="contain"
+                    contentFit="contain"
                   />
                 )}
                 <MarkdownText>{current.backText}</MarkdownText>

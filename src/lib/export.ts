@@ -8,7 +8,13 @@ async function readAsDataUri(path: string): Promise<string> {
   const b64 = await FileSystem.readAsStringAsync(path, {
     encoding: FileSystem.EncodingType.Base64,
   });
-  return `data:image/jpeg;base64,${b64}`;
+  // Pick the MIME type from the file extension so animated GIFs round-
+  // trip correctly through the export/import flow. The picker / importer
+  // both preserve the original extension when writing to disk, so the
+  // extension reliably reflects content type here.
+  const lower = path.toLowerCase();
+  const mime = lower.endsWith(".gif") ? "image/gif" : "image/jpeg";
+  return `data:${mime};base64,${b64}`;
 }
 
 async function deckToExport(deck: Deck, cards: Card[]) {
