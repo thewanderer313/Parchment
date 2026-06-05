@@ -35,7 +35,13 @@ function ThemedStack() {
           headerTitleStyle: { fontFamily: FONT_SERIF, fontWeight: "700" },
           headerShadowVisible: false,
         }}
-      />
+      >
+        {/* The (tabs) group is the app's root; it brings its own tab bar
+            and per-tab header, so the outer Stack shouldn't draw a header
+            of its own. All other Stack screens (deck/*, settings) still
+            get the default header configured above. */}
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
     </>
   );
 }

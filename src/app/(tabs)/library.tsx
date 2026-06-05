@@ -3,7 +3,7 @@ import {
   View, Text, Pressable, StyleSheet, FlatList, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useDecksStore } from "@/store/decksStore";
 import { useCardsStore } from "@/store/cardsStore";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -28,7 +28,11 @@ function confirmDelete(deckName: string, onConfirm: () => void) {
   );
 }
 
-export default function Home() {
+// Library tab — authoring side of the app. Same screen the user is
+// already familiar with from before the bottom-tabs restructure:
+// deck grid → tap to open Deck Detail → edit cards. The Study tab
+// next to this one carries the reader workflow.
+export default function LibraryTab() {
   const { theme } = useTheme();
   const decks = useDecksStore((s) => s.decks);
   const counts = useCardsStore((s) => s.counts);
@@ -90,10 +94,9 @@ export default function Home() {
       style={[styles.root, { backgroundColor: theme.colors.bgApp }]}
       edges={["top", "left", "right"]}
     >
-      <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <View>
-          <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Decks</Text>
+          <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Library</Text>
           <Text style={[styles.subtitle, { color: theme.colors.textMuted }]}>
             {decks.length === 0
               ? "Your library is empty"
