@@ -7,32 +7,60 @@ interface Props {
   width: number;
 }
 
-// A single shelf: the row of books (children) resting on a wooden
-// plank. The plank is a flat strip in a warm wood tone with a thin
-// highlight on its top edge to suggest a beveled lip — just enough
-// 3D-ness to read as "the books are STANDING ON something" rather
-// than "the books are floating".
+// A single shelf compartment: the back panel of the cabinet, a row
+// of books resting against it, and the wooden plank they stand on.
 //
-// Books are bottom-aligned in the row so their feet sit on the plank;
-// taller books rise above shorter ones the way a real shelf displays.
+// Layout:
+//   [   back panel (slightly darker than bgApp)   ]   ← visible behind/above books
+//   [   books row, bottom-aligned                 ]
+//   [   wooden plank                              ]   ← books rest on this
+//
+// The back panel makes shelves read as compartments inside a cabinet
+// rather than horizontal sticks floating on the parchment background.
+// Without it, books appear to hang in midair against bgApp; with it,
+// they sit inside a recessed niche.
+//
+// Books are still bottom-aligned within the row, so the foot of every
+// spine sits flush on the plank and taller books rise into the
+// compartment above shorter ones — exactly like a real bookshelf
+// where book heights vary.
+const COMPARTMENT_MIN_HEIGHT = 150;
+
 export function Shelf({ children, width }: Props) {
   const { theme } = useTheme();
-  // Wood tone derived from the theme so the shelf reads the same in
-  // light and dark mode without baking in literal browns. In light
-  // mode the shelf is a slightly darker warm tan than bgApp; in dark
-  // mode it's a slightly lighter slate than bgApp.
-  const shelfColor =
+  // Wood tone for the plank — derived from the theme so the shelf
+  // stays palette-consistent in light and dark mode without baking
+  // in literal browns.
+  const plankColor =
     theme.mode === "light" ? "#b89e6f" : "#3a3a32";
-  const highlightColor =
+  const plankLip =
     theme.mode === "light" ? "#d7c098" : "#5a5a4a";
-  const shadowColor =
+  const plankShadow =
     theme.mode === "light" ? "rgba(60, 40, 20, 0.25)" : "rgba(0, 0, 0, 0.4)";
+  // Back panel: slightly darker than bgApp so it reads as "behind."
+  // A subtle top edge shadow line suggests the underside of the shelf
+  // above — the cabinet interior gets a little darker where the next
+  // plank casts shade on the back wall.
+  const backPanelColor =
+    theme.mode === "light" ? "#d8cca6" : "#15191a";
+  const backTopShadow =
+    theme.mode === "light" ? "rgba(50, 30, 12, 0.18)" : "rgba(0, 0, 0, 0.5)";
+
   return (
     <View style={[styles.wrap, { width }]}>
-      <View style={[styles.booksRow, { width }]}>{children}</View>
-      <View style={[styles.shelfPlank, { backgroundColor: shelfColor, width }]}>
-        <View style={[styles.shelfLip, { backgroundColor: highlightColor }]} />
-        <View style={[styles.shelfShadow, { backgroundColor: shadowColor }]} />
+      <View style={[styles.compartment, { width, minHeight: COMPARTMENT_MIN_HEIGHT }]}>
+        {/* Back panel fills the compartment behind the books */}
+        <View style={[styles.backPanel, { backgroundColor: backPanelColor }]}>
+          {/* Top shadow line — the shelf above casts a thin band of
+              shadow on the back wall just under the cabinet ceiling. */}
+          <View style={[styles.backTopShadow, { backgroundColor: backTopShadow }]} />
+        </View>
+        {/* Books row sits in front of the back panel */}
+        <View style={[styles.booksRow, { width }]}>{children}</View>
+      </View>
+      <View style={[styles.shelfPlank, { backgroundColor: plankColor, width }]}>
+        <View style={[styles.shelfLip, { backgroundColor: plankLip }]} />
+        <View style={[styles.shelfShadow, { backgroundColor: plankShadow }]} />
       </View>
     </View>
   );
@@ -42,6 +70,26 @@ const styles = StyleSheet.create({
   wrap: {
     alignSelf: "center",
     marginBottom: 22,
+  },
+  compartment: {
+    // position: relative is implicit; backPanel is absolute children.
+    justifyContent: "flex-end",
+  },
+  backPanel: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    overflow: "hidden",
+  },
+  backTopShadow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    opacity: 0.7,
   },
   booksRow: {
     flexDirection: "row",
