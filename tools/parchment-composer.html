@@ -340,6 +340,51 @@
     font-size: 12px;
   }
   .hidden { display: none !important; }
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 100;
+  }
+  .modal-card {
+    background: var(--bg-card);
+    border: 1px solid var(--accent-soft);
+    border-radius: 16px;
+    padding: 24px 24px 20px;
+    max-width: 440px;
+    width: 100%;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+  }
+  .modal-card h2 {
+    font-family: var(--serif);
+    font-size: 20px;
+    margin: 0 0 8px;
+    color: var(--text-primary);
+  }
+  .modal-card p {
+    font-family: var(--serif);
+    color: var(--text-body);
+    margin: 0 0 14px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .shrink-progress {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 13px;
+    margin: 6px 0 14px;
+  }
   .hint {
     font-size: 12px;
     color: var(--text-muted);
@@ -421,6 +466,18 @@
     </div>
   </div>
 
+</div>
+
+<div id="shrinkModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="shrinkModalTitle">
+  <div class="modal-card">
+    <h2 id="shrinkModalTitle">Large images detected</h2>
+    <p id="shrinkModalBody"></p>
+    <p class="shrink-progress hidden" id="shrinkProgress"></p>
+    <div class="modal-actions">
+      <button class="btn ghost" id="shrinkSkipBtn">Not now</button>
+      <button class="btn" id="shrinkGoBtn">Shrink them</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -689,65 +746,158 @@ function insertSyntax(idx, side, action) {
   setStatus("");
 }
 
-// Resize/recompress an image so the exported JSON stays manageable. The
-// phone app's pipeline uses 1600px max edge, JPEG q 0.85 — match that here
-// so a composer-built deck and an on-device-built deck behave the same.
-//
-// If re-encoding would actually grow the payload (small heavily-compressed
-// source images), we keep the original data URI instead of bloating it.
-function shrinkImage(file, maxEdge, quality) {
-  if (maxEdge === undefined) maxEdge = 1600;
-  if (quality === undefined) quality = 0.85;
-  return new Promise(function (resolve, reject) {
-    const reader = new FileReader();
-    reader.onerror = function () { reject(reader.error || new Error("read failed")); };
-    reader.onload = function () {
-      const origDataUri = reader.result;
-      const img = new Image();
-      img.onerror = function () { reject(new Error("couldn't decode image")); };
-      img.onload = function () {
-        const w = img.naturalWidth;
-        const h = img.naturalHeight;
-        const longest = Math.max(w, h);
-        const scale = longest > maxEdge ? maxEdge / longest : 1;
-        const dw = Math.max(1, Math.round(w * scale));
-        const dh = Math.max(1, Math.round(h * scale));
-        const canvas = document.createElement("canvas");
-        canvas.width = dw;
-        canvas.height = dh;
-        const ctx = canvas.getContext("2d");
-        // Paint white first so transparent PNGs/WebPs don't end up with
-        // black backgrounds after the JPEG re-encode.
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, dw, dh);
-        ctx.drawImage(img, 0, 0, dw, dh);
-        const shrunk = canvas.toDataURL("image/jpeg", quality);
-        const chosen = shrunk.length < origDataUri.length ? shrunk : origDataUri;
-        // Approx byte count for a base64 payload: ignore the "data:..;base64,"
-        // header and apply the 3/4 ratio. Good enough for status messages.
-        const approxBytes = function (uri) {
-          const i = uri.indexOf(",");
-          const body = i >= 0 ? uri.length - i - 1 : uri.length;
-          return Math.round(body * 0.75);
-        };
-        resolve({
-          dataUri: chosen,
-          origBytes: approxBytes(origDataUri),
-          newBytes: approxBytes(chosen),
-          width: dw,
-          height: dh,
-        });
-      };
-      img.src = origDataUri;
-    };
-    reader.readAsDataURL(file);
-  });
+// Approx binary byte count for a base64-encoded data URI. Used to flag
+// oversized images at load time and to report savings in status messages.
+function approxBytes(uri) {
+  if (!uri) return 0;
+  const i = uri.indexOf(",");
+  const body = i >= 0 ? uri.length - i - 1 : uri.length;
+  return Math.round(body * 0.75);
 }
 
 function formatBytes(n) {
   if (n < 1024) return n + " B";
   if (n < 1024 * 1024) return Math.round(n / 1024) + " KB";
   return (n / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+// An image is a shrink candidate if it's a base64 data URI larger than this
+// threshold. Pixel-correct dimension checks would require decoding every
+// image, which is slow for large decks. 400 KB binary cleanly separates
+// "phone-photo originals" (typically 2–5 MB) from "already-1600px-q=0.85
+// JPEGs" (typically 150–400 KB), with shrinkDataUri's own size-check
+// safely handling false positives (re-encode is dropped if not smaller).
+const SHRINK_THRESHOLD_BYTES = 400 * 1024;
+function needsShrinking(uri) {
+  return !!uri && typeof uri === "string" &&
+    uri.indexOf("data:image/") === 0 &&
+    approxBytes(uri) > SHRINK_THRESHOLD_BYTES;
+}
+
+// Core resize/recompress routine. Decodes the data URI via an Image element
+// to learn its intrinsic dimensions, draws it onto a canvas scaled so the
+// longest edge is at most `maxEdge`, and re-encodes as JPEG at `quality`.
+// Matches the phone app's expo-image-manipulator pipeline (1600 / 0.85)
+// so a composer-built deck and an on-device-built deck behave identically.
+//
+// If re-encoding would actually grow the payload (rare — happens with
+// small images that were already aggressively compressed), the original
+// data URI is returned instead.
+function shrinkDataUri(origDataUri, maxEdge, quality) {
+  if (maxEdge === undefined) maxEdge = 1600;
+  if (quality === undefined) quality = 0.85;
+  return new Promise(function (resolve, reject) {
+    if (!origDataUri || origDataUri.indexOf("data:image/") !== 0) {
+      resolve({
+        dataUri: origDataUri,
+        origBytes: approxBytes(origDataUri),
+        newBytes: approxBytes(origDataUri),
+        width: 0,
+        height: 0,
+        changed: false,
+      });
+      return;
+    }
+    const img = new Image();
+    img.onerror = function () { reject(new Error("couldn't decode image")); };
+    img.onload = function () {
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      const longest = Math.max(w, h);
+      const scale = longest > maxEdge ? maxEdge / longest : 1;
+      const dw = Math.max(1, Math.round(w * scale));
+      const dh = Math.max(1, Math.round(h * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = dw;
+      canvas.height = dh;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, dw, dh);
+      ctx.drawImage(img, 0, 0, dw, dh);
+      const shrunk = canvas.toDataURL("image/jpeg", quality);
+      const chosen = shrunk.length < origDataUri.length ? shrunk : origDataUri;
+      resolve({
+        dataUri: chosen,
+        origBytes: approxBytes(origDataUri),
+        newBytes: approxBytes(chosen),
+        width: dw,
+        height: dh,
+        changed: chosen !== origDataUri,
+      });
+    };
+    img.src = origDataUri;
+  });
+}
+
+// File-pick wrapper: read the file to a data URI, then delegate to the
+// data-URI-based shrinker so the same logic runs in both code paths.
+function shrinkImage(file, maxEdge, quality) {
+  return new Promise(function (resolve, reject) {
+    const reader = new FileReader();
+    reader.onerror = function () { reject(reader.error || new Error("read failed")); };
+    reader.onload = function () {
+      shrinkDataUri(reader.result, maxEdge, quality).then(resolve, reject);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Walk the current deck state and return locators for every image that
+// looks oversized, plus the total estimated binary footprint. Used by the
+// "you have N large images, want to shrink?" prompt on deck load.
+function scanForOversized() {
+  const items = [];
+  let totalBytes = 0;
+  if (needsShrinking(state.deck.cover_image)) {
+    items.push({ kind: "cover" });
+    totalBytes += approxBytes(state.deck.cover_image);
+  }
+  for (let i = 0; i < state.cards.length; i++) {
+    const c = state.cards[i];
+    (c.front_images || []).forEach(function (uri, j) {
+      if (needsShrinking(uri)) {
+        items.push({ kind: "card", side: "front", idx: i, imgIdx: j });
+        totalBytes += approxBytes(uri);
+      }
+    });
+    (c.back_images || []).forEach(function (uri, j) {
+      if (needsShrinking(uri)) {
+        items.push({ kind: "card", side: "back", idx: i, imgIdx: j });
+        totalBytes += approxBytes(uri);
+      }
+    });
+  }
+  return { items: items, count: items.length, totalBytes: totalBytes };
+}
+
+// Shrink every flagged image in place. `onProgress(done, total)` is called
+// before each item starts so the modal can update its counter. Returns
+// aggregate before/after byte totals for the final status message.
+async function shrinkAllOversized(items, onProgress) {
+  let origTotal = 0;
+  let newTotal = 0;
+  for (let n = 0; n < items.length; n++) {
+    const it = items[n];
+    if (onProgress) onProgress(n + 1, items.length);
+    let uri;
+    if (it.kind === "cover") uri = state.deck.cover_image;
+    else uri = state.cards[it.idx][it.side === "front" ? "front_images" : "back_images"][it.imgIdx];
+    try {
+      const r = await shrinkDataUri(uri);
+      origTotal += r.origBytes;
+      newTotal += r.newBytes;
+      if (it.kind === "cover") {
+        state.deck.cover_image = r.dataUri;
+      } else {
+        state.cards[it.idx][it.side === "front" ? "front_images" : "back_images"][it.imgIdx] = r.dataUri;
+      }
+    } catch (_e) {
+      // Skip any image that fails to decode — leave the original in place
+      // rather than blanking it out, and keep going so a single bad image
+      // doesn't abort the whole batch.
+    }
+  }
+  return { origTotal: origTotal, newTotal: newTotal };
 }
 
 function chooseImage(idx, side) {
@@ -873,6 +1023,7 @@ function loadDraft() {
     expandedId = state.cards[0].id;
     render();
     setStatus("Draft loaded.");
+    maybePromptShrink();
   } catch (e) {
     setStatus("Couldn't load: " + e.message);
   }
@@ -1015,8 +1166,10 @@ function loadJsonFile(file) {
         }),
       };
       if (state.cards.length === 0) state.cards.push(newCard());
+      expandedId = state.cards[0] ? state.cards[0].id : null;
       render();
       setStatus("Loaded " + state.cards.length + " card(s) from " + file.name + ".");
+      maybePromptShrink();
     } catch (e) {
       setStatus("Couldn't load: " + e.message);
     }
@@ -1121,6 +1274,65 @@ $("jsonInput").addEventListener("change", function (e) {
   e.target.value = "";
 });
 
+// Shrink-prompt modal: pops up after a load (autoload, Load draft, or
+// Load .json) when the deck contains images that look like they came
+// straight off a phone camera. Skipping the prompt is non-destructive —
+// the deck stays as-is, and the user can re-trigger the scan by loading
+// again. Newly added images already go through shrinkImage at pick time,
+// so the modal addresses the "I imported a draft from before the shrink
+// pipeline existed" case.
+let shrinkModalItems = null;
+
+function showShrinkModal(scan) {
+  shrinkModalItems = scan.items;
+  $("shrinkModalBody").textContent =
+    "Found " + scan.count + " large image" + (scan.count === 1 ? "" : "s") +
+    " (about " + formatBytes(scan.totalBytes) + " total). Shrinking will " +
+    "match the phone app's 1600 px / JPEG quality 0.85 pipeline so the " +
+    "exported file stays a reasonable size.";
+  $("shrinkProgress").classList.add("hidden");
+  $("shrinkProgress").textContent = "";
+  $("shrinkGoBtn").disabled = false;
+  $("shrinkSkipBtn").disabled = false;
+  $("shrinkModal").classList.remove("hidden");
+}
+
+function hideShrinkModal() {
+  $("shrinkModal").classList.add("hidden");
+  shrinkModalItems = null;
+}
+
+function maybePromptShrink() {
+  const scan = scanForOversized();
+  if (scan.count > 0) showShrinkModal(scan);
+}
+
+$("shrinkSkipBtn").addEventListener("click", function () { hideShrinkModal(); });
+
+$("shrinkGoBtn").addEventListener("click", async function () {
+  if (!shrinkModalItems || shrinkModalItems.length === 0) { hideShrinkModal(); return; }
+  const items = shrinkModalItems;
+  $("shrinkGoBtn").disabled = true;
+  $("shrinkSkipBtn").disabled = true;
+  const prog = $("shrinkProgress");
+  prog.classList.remove("hidden");
+  prog.textContent = "Shrinking 1 of " + items.length + "…";
+  try {
+    const result = await shrinkAllOversized(items, function (done, total) {
+      prog.textContent = "Shrinking " + done + " of " + total + "…";
+    });
+    hideShrinkModal();
+    render();
+    setStatus(
+      "Shrank " + items.length + " image" + (items.length === 1 ? "" : "s") +
+      ": " + formatBytes(result.origTotal) + " → " + formatBytes(result.newTotal)
+    );
+  } catch (err) {
+    prog.textContent = "Couldn't finish: " + (err.message || err);
+    $("shrinkSkipBtn").disabled = false;
+  }
+});
+
 // Auto-load draft on first open if present and current state is blank
 (function autoload() {
   try {
@@ -1136,6 +1348,7 @@ $("jsonInput").addEventListener("change", function (e) {
   // when the page loads.
   expandedId = state.cards[0] ? state.cards[0].id : null;
   render();
+  maybePromptShrink();
 })();
 
 </script>
