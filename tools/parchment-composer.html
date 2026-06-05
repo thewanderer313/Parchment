@@ -402,8 +402,6 @@
   </header>
 
   <div class="top-actions">
-    <button class="btn ghost" id="saveDraftBtn">Save draft</button>
-    <button class="btn ghost" id="loadDraftBtn">Load draft</button>
     <button class="btn ghost danger" id="clearBtn">Clear everything</button>
     <button class="btn ghost" id="loadJsonBtn">Load .json…</button>
     <span class="status" id="status"></span>
@@ -912,6 +910,7 @@ function chooseImage(idx, side) {
       state.cards[idx][side === "front" ? "front_images" : "back_images"] = [r.dataUri];
       state.cards[idx][side === "front" ? "front_file_name" : "back_file_name"] = file.name;
       render();
+      autosaveNow();
       setStatus(
         "Image added (" + r.width + "×" + r.height + ", " +
         formatBytes(r.origBytes) + " → " + formatBytes(r.newBytes) + ")"
@@ -927,6 +926,7 @@ function removeImage(idx, side) {
   state.cards[idx][side === "front" ? "front_images" : "back_images"] = [];
   state.cards[idx][side === "front" ? "front_file_name" : "back_file_name"] = "";
   render();
+  autosaveNow();
 }
 
 function deleteCard(idx) {
@@ -940,6 +940,7 @@ function deleteCard(idx) {
     expandedId = null;
   }
   render();
+  autosaveNow();
   setStatus("");
 }
 
@@ -950,6 +951,7 @@ function moveCard(idx, dir) {
   state.cards[idx] = state.cards[target];
   state.cards[target] = tmp;
   render();
+  autosaveNow();
   setStatus("");
 }
 
@@ -983,6 +985,7 @@ function addCardAndExpand() {
   state.cards.push(c);
   expandedId = c.id;
   render();
+  autosaveNow();
   focusFrontTextarea();
 }
 
@@ -993,6 +996,7 @@ function removeCover() {
   state.deck.cover_image = null;
   state.deck.cover_file_name = "";
   render();
+  autosaveNow();
 }
 
 // ---------- Status / persistence ----------
@@ -1001,38 +1005,46 @@ function setStatus(msg) {
   el.textContent = msg;
   if (msg) setTimeout(function () { if (el.textContent === msg) el.textContent = ""; }, 3000);
 }
-function saveDraft() {
+// Persist the current deck to localStorage so closing the tab doesn't
+// lose work. Called from `scheduleAutosave` (debounced) and at a few
+// state-change points where we want an immediate write (clearAll,
+// loadJsonFile success, shrink completion).
+//
+// localStorage has a per-origin quota (typically 5–10 MB). A deck with
+// many full-resolution images can blow past that even after shrinking.
+// On quota failure, surface a non-fading status nudging the user to
+// download a .json snapshot so they don't lose work silently.
+function autosaveNow() {
   try {
-    // Persist deck + cards only — never the runtime expandedId UI state.
     localStorage.setItem("parchment-composer-draft", JSON.stringify({
       deck: state.deck,
       cards: state.cards,
     }));
-    setStatus("Draft saved.");
   } catch (e) {
-    setStatus("Couldn't save: " + e.message);
+    const quota = e && (e.name === "QuotaExceededError" || (e.code === 22));
+    if (quota) {
+      setStatus("Deck too large to autosave in your browser — download a .json to keep your work safe.");
+    } else {
+      setStatus("Couldn't autosave: " + (e.message || e));
+    }
   }
 }
-function loadDraft() {
-  try {
-    const raw = localStorage.getItem("parchment-composer-draft");
-    if (!raw) { setStatus("No draft saved yet."); return; }
-    state = JSON.parse(raw);
-    if (!state.cards || state.cards.length === 0) state.cards = [newCard()];
-    // Open the first card so the editor isn't blank on load.
-    expandedId = state.cards[0].id;
-    render();
-    setStatus("Draft loaded.");
-    maybePromptShrink();
-  } catch (e) {
-    setStatus("Couldn't load: " + e.message);
-  }
+
+let autosaveTimer = null;
+function scheduleAutosave() {
+  if (autosaveTimer) clearTimeout(autosaveTimer);
+  // 1.5 s of idle time is long enough that a typing burst only writes
+  // localStorage once at the end, short enough that closing the tab
+  // mid-thought rarely loses more than the last sentence.
+  autosaveTimer = setTimeout(autosaveNow, 1500);
 }
+
 function clearAll() {
-  if (!confirm("Clear all deck info and cards? This can't be undone (the saved draft stays in localStorage).")) return;
+  if (!confirm("Clear all deck info and cards? This can't be undone.")) return;
   state = blankState();
   expandedId = state.cards[0] ? state.cards[0].id : null;
   render();
+  autosaveNow();
   setStatus("");
 }
 
@@ -1168,6 +1180,7 @@ function loadJsonFile(file) {
       if (state.cards.length === 0) state.cards.push(newCard());
       expandedId = state.cards[0] ? state.cards[0].id : null;
       render();
+      autosaveNow();
       setStatus("Loaded " + state.cards.length + " card(s) from " + file.name + ".");
       maybePromptShrink();
     } catch (e) {
@@ -1180,13 +1193,16 @@ function loadJsonFile(file) {
 // ---------- Wire up ----------
 document.addEventListener("input", function (e) {
   const t = e.target;
-  if (t.id === "deckEmoji") state.deck.emoji = t.value;
-  else if (t.id === "deckName") state.deck.name = t.value;
-  else if (t.id === "deckDescription") state.deck.description = t.value;
+  let mutated = false;
+  if (t.id === "deckEmoji") { state.deck.emoji = t.value; mutated = true; }
+  else if (t.id === "deckName") { state.deck.name = t.value; mutated = true; }
+  else if (t.id === "deckDescription") { state.deck.description = t.value; mutated = true; }
   else if (t.tagName === "TEXTAREA" && t.dataset.side) {
     const idx = parseInt(t.dataset.idx, 10);
     setText(idx, t.dataset.side, t.value);
+    mutated = true;
   }
+  if (mutated) scheduleAutosave();
 });
 
 // Toolbar buttons must not steal focus from the textarea on mousedown —
@@ -1238,8 +1254,6 @@ document.addEventListener("click", function (e) {
   switch (t.id) {
     case "addCardBtn": addCardAndExpand(); break;
     case "collapseAllBtn": collapseCurrentCard(); break;
-    case "saveDraftBtn": saveDraft(); break;
-    case "loadDraftBtn": loadDraft(); break;
     case "clearBtn": clearAll(); break;
     case "downloadBtn": downloadJson(); break;
     case "showJsonBtn": showJson(); break;
@@ -1259,6 +1273,7 @@ $("coverInput").addEventListener("change", function (e) {
     state.deck.cover_image = r.dataUri;
     state.deck.cover_file_name = file.name;
     render();
+    autosaveNow();
     setStatus(
       "Cover added (" + r.width + "×" + r.height + ", " +
       formatBytes(r.origBytes) + " → " + formatBytes(r.newBytes) + ")"
@@ -1274,9 +1289,9 @@ $("jsonInput").addEventListener("change", function (e) {
   e.target.value = "";
 });
 
-// Shrink-prompt modal: pops up after a load (autoload, Load draft, or
-// Load .json) when the deck contains images that look like they came
-// straight off a phone camera. Skipping the prompt is non-destructive —
+// Shrink-prompt modal: pops up after a load (autoload from
+// localStorage or Load .json) when the deck contains images that look
+// like they came straight off a phone camera. Skipping is non-destructive —
 // the deck stays as-is, and the user can re-trigger the scan by loading
 // again. Newly added images already go through shrinkImage at pick time,
 // so the modal addresses the "I imported a draft from before the shrink
@@ -1323,6 +1338,7 @@ $("shrinkGoBtn").addEventListener("click", async function () {
     });
     hideShrinkModal();
     render();
+    autosaveNow();
     setStatus(
       "Shrank " + items.length + " image" + (items.length === 1 ? "" : "s") +
       ": " + formatBytes(result.origTotal) + " → " + formatBytes(result.newTotal)
@@ -1333,7 +1349,9 @@ $("shrinkGoBtn").addEventListener("click", async function () {
   }
 });
 
-// Auto-load draft on first open if present and current state is blank
+// Restore the autosaved deck on page open (if any). Editing then
+// triggers `scheduleAutosave` / `autosaveNow` to keep localStorage in
+// sync, so closing the tab without "Save"-ing is no longer destructive.
 (function autoload() {
   try {
     const raw = localStorage.getItem("parchment-composer-draft");
