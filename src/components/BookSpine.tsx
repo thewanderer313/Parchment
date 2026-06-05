@@ -40,6 +40,12 @@ export function BookSpine({ deck, cardCount, dims, onPress, onLongPress }: Props
   // After the -90° rotate, that footprint becomes "narrow x tall" and
   // fits inside the spine.
   const labelTrack = dims.height - 56;
+  // Adaptive font size — long titles shrink so more of the name fits
+  // on the spine before ellipsizing. The cover screen always shows
+  // the full title regardless, so this is a "what reads on the
+  // shelf" tuning, not a comprehension fix.
+  const nameLen = deck.name.length;
+  const labelFontSize = nameLen > 28 ? 10 : nameLen > 18 ? 11.5 : 13;
 
   // Lift animation — the book pulls a few px off the shelf and tilts
   // slightly when tapped, then settles back. Reads as "pulling a book
@@ -112,6 +118,7 @@ export function BookSpine({ deck, cardCount, dims, onPress, onLongPress }: Props
             {
               transform: [{ rotate: "-90deg" }],
               width: labelTrack,
+              fontSize: labelFontSize,
             },
           ]}
         >

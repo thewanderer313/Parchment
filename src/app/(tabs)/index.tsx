@@ -44,7 +44,7 @@ export default function StudyTab() {
           label: "Start studying",
           onPress: () =>
             router.push({
-              pathname: "/deck/[id]/study",
+              pathname: "/deck/[id]/cover",
               params: { id: menuDeck.id },
             } as never),
         },
@@ -108,7 +108,7 @@ export default function StudyTab() {
                       return;
                     }
                     router.push({
-                      pathname: "/deck/[id]/study",
+                      pathname: "/deck/[id]/cover",
                       params: { id: deck.id },
                     } as never);
                   }}
