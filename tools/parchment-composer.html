@@ -1230,8 +1230,15 @@ document.addEventListener("click", function (e) {
   const t = e.target.closest("button, [data-act]");
   if (!t) return;
   const act = t.dataset.act;
-  const idx = t.dataset.idx !== undefined ? parseInt(t.dataset.idx, 10) : null;
-  const side = t.dataset.side || null;
+  // Some buttons (the markdown toolbar B/I/H/code/ul/ol/link) only carry
+  // `data-act`; their `data-side` / `data-idx` live on the toolbar wrapper
+  // div above. Walk up to find them. Buttons that *do* set them inline
+  // (image picker, card move/delete) get them on the button itself, so
+  // `closest("[data-side]")` returns the button itself in those cases.
+  const sideEl = t.closest("[data-side]");
+  const idxEl = t.closest("[data-idx]");
+  const side = sideEl ? sideEl.dataset.side : null;
+  const idx = idxEl && idxEl.dataset.idx !== undefined ? parseInt(idxEl.dataset.idx, 10) : null;
   switch (act) {
     case "bold":
     case "italic":
