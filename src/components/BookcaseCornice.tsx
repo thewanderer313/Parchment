@@ -1,28 +1,34 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useTheme } from "@/theme/ThemeProvider";
+import { FONT_DISPLAY } from "@/theme/fonts";
 
 interface Props {
   width: number;
 }
 
-// The decorative top cap of the bookcase — a horizontal wood bar that
-// sits above the topmost Shelf and caps the continuous side rails.
-// Slightly thicker than the per-shelf plank (18 px vs 10 px) so it
-// reads as the cabinet's crown molding rather than just another
-// shelf. Spans the full outer bookcase width so it visually closes
-// the side rails at the top.
+// Crown moulding above the topmost shelf. Designed as a refined
+// architectural profile rather than a flat plank:
 //
-// A thin secondary line a few px below the top edge suggests a
-// routed chamfer / step in the moulding — the kind of profile a real
-// cabinet cornice has — without the complexity of drawing actual
-// curved profiles.
-const CORNICE_HEIGHT = 18;
+//   ═════════════════════════════════════════   ← top highlight (catches light)
+//   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─    ← upper chamfer line
+//
+//                       ✦                       ← centred ornament
+//
+//   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─    ← lower chamfer line
+//   ═════════════════════════════════════════   ← bottom shadow
+//
+// The two chamfer lines bracket the ornament and suggest the stepped
+// profile a real cornice moulding has — without forcing us to draw
+// actual curved bevels. The centred ✦ in plankLip (the same colour as
+// the light-catching highlights) reads as a small carved or inlaid
+// rosette: the cabinet's nameplate, basically.
+const CORNICE_HEIGHT = 26;
 
 export function BookcaseCornice({ width }: Props) {
   const { theme } = useTheme();
-  // Same per-theme wood tones as the Shelf so the cornice belongs
-  // to the same piece of furniture.
+  // Per-theme wood tones — same fork as Shelf so the cornice reads
+  // as the same piece of furniture.
   const plankColor =
     theme.mode === "light" ? "#b89e6f" :
     theme.mode === "leather" ? "#6a4828" :
@@ -38,13 +44,22 @@ export function BookcaseCornice({ width }: Props) {
 
   return (
     <View style={[styles.cornice, { width, backgroundColor: plankColor }]}>
-      {/* Top-edge highlight — the cabinet's front face catches light. */}
+      {/* Top edge — 1 px highlight catching the room light. */}
       <View style={[styles.topLip, { backgroundColor: plankLip }]} />
-      {/* Subtle routed-line decoration ~5 px from the top edge. Reads
-          as a chamfer/step in the moulding profile. */}
-      <View style={[styles.decoLine, { backgroundColor: plankShadow }]} />
-      {/* Bottom-edge shadow — the cornice's underside is in shade
-          relative to the topmost compartment beneath it. */}
+      {/* Upper chamfer line — suggests the first step in the
+          stepped moulding profile. */}
+      <View style={[styles.upperChamfer, { backgroundColor: plankShadow }]} />
+      {/* Centred ornament — a small ✦ in the highlight tone, sized
+          to feel like a carved rosette rather than a typographic
+          glyph. */}
+      <View style={styles.ornamentSlot} pointerEvents="none">
+        <Text style={[styles.ornamentGlyph, { color: plankLip }]}>✦</Text>
+      </View>
+      {/* Lower chamfer line — mirrors the upper chamfer, bracketing
+          the ornament between two symmetric steps. */}
+      <View style={[styles.lowerChamfer, { backgroundColor: plankShadow }]} />
+      {/* Bottom edge — 2 px shadow where the cornice meets the
+          topmost compartment. */}
       <View style={[styles.bottomShadow, { backgroundColor: plankShadow }]} />
     </View>
   );
@@ -62,14 +77,40 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
+    opacity: 0.95,
   },
-  decoLine: {
+  upperChamfer: {
     position: "absolute",
     top: 5,
     left: 0,
     right: 0,
     height: 1,
-    opacity: 0.55,
+    opacity: 0.5,
+  },
+  // The slot fills the full cornice — alignItems: center vertically
+  // centres the ornament glyph between the chamfer lines.
+  ornamentSlot: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ornamentGlyph: {
+    fontFamily: FONT_DISPLAY,
+    fontSize: 11,
+    letterSpacing: 2,
+    opacity: 0.9,
+  },
+  lowerChamfer: {
+    position: "absolute",
+    bottom: 5,
+    left: 0,
+    right: 0,
+    height: 1,
+    opacity: 0.5,
   },
   bottomShadow: {
     position: "absolute",
