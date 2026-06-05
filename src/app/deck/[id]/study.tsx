@@ -12,6 +12,7 @@ import { FlipCard } from "@/components/FlipCard";
 import { MarkdownText } from "@/components/MarkdownText";
 import { useReduceMotion } from "@/lib/useReduceMotion";
 import { PaperBackground } from "@/components/PaperBackground";
+import { CardJumpModal } from "@/components/CardJumpModal";
 
 function shuffleArray<T>(arr: T[]): T[] {
   const a = arr.slice();
@@ -57,6 +58,7 @@ export default function StudyScreen() {
 
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
+  const [jumpOpen, setJumpOpen] = useState(false);
   const translateX = useSharedValue(0);
   const opacity = useSharedValue(1);
   // Use a Reanimated shared value (not a React ref) for the animating flag.
@@ -67,19 +69,38 @@ export default function StudyScreen() {
   const animating = useSharedValue(0);
   const initialJumped = useRef(false);
 
+  // Initial positioning — runs once as soon as cards are available.
+  //
+  // Previous version unconditionally reset to index 0 in the else
+  // branch, which fired on every subsequent orderedCards change. The
+  // Study screen also calls loadByDeck on mount, which refreshes the
+  // store entry with a new array reference, retriggering this effect
+  // and stomping the position the user had just been placed on. Now
+  // the effect runs at most once: as soon as we see a non-empty
+  // orderedCards, we honor startCardId (or fall back to 0) and flip
+  // initialJumped so subsequent refreshes don't touch the index.
   useEffect(() => {
-    // If a startCardId param was passed (from "Study from here…" in the card
-    // menu), jump to that card on the first mount. Otherwise reset to 0.
-    // Subsequent orderedCards changes (shuffle toggle, etc.) always reset.
-    if (!initialJumped.current && startCardId && orderedCards.length > 0) {
+    if (initialJumped.current) return;
+    if (orderedCards.length === 0) return;
+    if (startCardId) {
       const i = orderedCards.findIndex((c) => c.id === startCardId);
       setIndex(i >= 0 ? i : 0);
-      initialJumped.current = true;
     } else {
       setIndex(0);
     }
     setFlipped(false);
+    initialJumped.current = true;
   }, [orderedCards, startCardId]);
+
+  // Toggling shuffle mid-session reshuffles orderedCards; jump back
+  // to the start of the new order so the position counter ("Card N of
+  // M") is meaningful. Gated on initialJumped so this doesn't double-
+  // fire alongside the positioning effect on the very first mount.
+  useEffect(() => {
+    if (!initialJumped.current) return;
+    setIndex(0);
+    setFlipped(false);
+  }, [shuffle]);
 
   const goTo = (nextIndex: number) => {
     if (nextIndex < 0 || nextIndex >= orderedCards.length || animating.value === 1) return;
@@ -140,10 +161,19 @@ export default function StudyScreen() {
         <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.iconBtn}>
           <Text style={[styles.iconLabel, { color: theme.colors.textPrimary }]}>✕</Text>
         </Pressable>
-        <View style={styles.titleWrap}>
+        {/* Tap the title row to open the card-jump panel — natural
+            affordance for "I want to navigate to a specific card." */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Jump to card. Currently card ${index + 1} of ${orderedCards.length}`}
+          onPress={() => setJumpOpen(true)}
+          style={styles.titleWrap}
+        >
           <Text style={[styles.titleDeck, { color: theme.colors.textMuted }]} numberOfLines={1}>{deck.name}</Text>
-          <Text style={[styles.titleCount, { color: theme.colors.textPrimary }]}>Card {index + 1} of {orderedCards.length}</Text>
-        </View>
+          <Text style={[styles.titleCount, { color: theme.colors.textPrimary }]}>
+            Card {index + 1} of {orderedCards.length}  <Text style={[styles.titleHint, { color: theme.colors.textMuted }]}>≡</Text>
+          </Text>
+        </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Toggle shuffle"
@@ -207,6 +237,18 @@ export default function StudyScreen() {
           <Text style={[styles.navLabel, { color: theme.colors.textBody }]}>Next ›</Text>
         </Pressable>
       </View>
+
+      <CardJumpModal
+        visible={jumpOpen}
+        cards={orderedCards}
+        currentIndex={index}
+        onClose={() => setJumpOpen(false)}
+        onJump={(i) => {
+          setJumpOpen(false);
+          setIndex(i);
+          setFlipped(false);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -219,6 +261,7 @@ const styles = StyleSheet.create({
   titleWrap: { flex: 1, alignItems: "center" },
   titleDeck: { fontFamily: FONT_DISPLAY_ITALIC, fontSize: 13 },
   titleCount: { fontFamily: FONT_DISPLAY, fontSize: 15 },
+  titleHint: { fontSize: 13, opacity: 0.7 },
   cardArea: { flex: 1, padding: 16 },
   faceInner: { gap: 14, alignItems: "center" },
   hint: { fontFamily: FONT_DISPLAY, fontSize: 10, letterSpacing: 3, textTransform: "uppercase" },

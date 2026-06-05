@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, Pressable, StyleSheet, Alert } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { View, Text, Pressable, StyleSheet, Alert, TextInput, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DraggableFlatList, {
   type RenderItemParams,
@@ -39,6 +39,31 @@ export default function DeckDetailScreen() {
   // outer menu can't lose track of which card we were moving.
   const [moveCard, setMoveCard] = useState<Card | null>(null);
   const allDecks = useDecksStore((s) => s.decks);
+
+  // In-deck filter — for decks with many cards, scrolling 240 rows
+  // to find a specific one is tedious. Typing in this input narrows
+  // the visible list synchronously (filter runs against in-memory
+  // data so no debounce needed). Reorder is disabled while filtering
+  // because dragging a row out of a filtered context is meaningless.
+  const [filter, setFilter] = useState("");
+  const filteredCards = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (q.length === 0) return cards;
+    return cards.filter(
+      (c) =>
+        c.frontText.toLowerCase().includes(q) ||
+        c.backText.toLowerCase().includes(q)
+    );
+  }, [cards, filter]);
+  // Map card id → full-deck index so the chapter numerals in CardRow
+  // always reflect actual position, not position within the filtered
+  // subset. O(N) once per cards change; lookup is O(1) per row.
+  const indexById = useMemo(() => {
+    const m = new Map<string, number>();
+    cards.forEach((c, i) => m.set(c.id, i));
+    return m;
+  }, [cards]);
+  const filtering = filter.trim().length > 0;
 
   useEffect(() => {
     if (id) loadByDeck(id);
@@ -225,38 +250,97 @@ export default function DeckDetailScreen() {
           </Text>
         </View>
       ) : (
-        <DraggableFlatList
-          data={cards}
-          keyExtractor={(c) => c.id}
-          contentContainerStyle={styles.list}
-          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-          onDragEnd={({ data }) => {
-            // No-op if the order didn't actually change.
-            const before = cards.map((c) => c.id).join("|");
-            const after = data.map((c) => c.id).join("|");
-            if (before === after) return;
-            useCardsStore
-              .getState()
-              .reorder(deck.id, data.map((c) => c.id))
-              .catch((e) => Alert.alert("Couldn't reorder cards", e.message));
-          }}
-          renderItem={({ item, drag, getIndex }: RenderItemParams<Card>) => {
-            const i = getIndex();
-            return (
-              <ScaleDecorator>
+        <>
+          <View style={styles.filterRow}>
+            <TextInput
+              accessibilityLabel="Filter cards in this deck"
+              placeholder={`Filter ${cards.length} card${cards.length === 1 ? "" : "s"}`}
+              placeholderTextColor={theme.colors.textMuted}
+              value={filter}
+              onChangeText={setFilter}
+              autoCorrect={false}
+              autoCapitalize="none"
+              returnKeyType="search"
+              style={[
+                styles.filterInput,
+                {
+                  color: theme.colors.textPrimary,
+                  borderColor: theme.colors.accentSoft,
+                  backgroundColor: theme.colors.bgCard,
+                },
+              ]}
+            />
+            {filter.length > 0 && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Clear filter"
+                onPress={() => setFilter("")}
+                hitSlop={8}
+                style={styles.filterClear}
+              >
+                <Text style={[styles.filterClearGlyph, { color: theme.colors.textMuted }]}>✕</Text>
+              </Pressable>
+            )}
+          </View>
+
+          {filtering && filteredCards.length === 0 ? (
+            <View style={styles.noFilterMatch}>
+              <Text style={[styles.noFilterText, { color: theme.colors.textMuted }]}>
+                No cards match &quot;{filter.trim()}&quot;.
+              </Text>
+            </View>
+          ) : filtering ? (
+            <FlatList
+              data={filteredCards}
+              keyExtractor={(c) => c.id}
+              contentContainerStyle={styles.list}
+              ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item }) => (
                 <CardRow
                   card={item}
-                  index={typeof i === "number" ? i + 1 : undefined}
+                  index={(indexById.get(item.id) ?? 0) + 1}
                   onPress={() =>
                     router.push({ pathname: "/deck/[id]/card/[cardId]/edit", params: { id: deck.id, cardId: item.id } } as never)
                   }
                   onLongPress={() => setCardMenu(item)}
-                  onDragHandlePress={drag}
                 />
-              </ScaleDecorator>
-            );
-          }}
-        />
+              )}
+            />
+          ) : (
+            <DraggableFlatList
+              data={cards}
+              keyExtractor={(c) => c.id}
+              contentContainerStyle={styles.list}
+              ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+              onDragEnd={({ data }) => {
+                const before = cards.map((c) => c.id).join("|");
+                const after = data.map((c) => c.id).join("|");
+                if (before === after) return;
+                useCardsStore
+                  .getState()
+                  .reorder(deck.id, data.map((c) => c.id))
+                  .catch((e) => Alert.alert("Couldn't reorder cards", e.message));
+              }}
+              renderItem={({ item, drag, getIndex }: RenderItemParams<Card>) => {
+                const i = getIndex();
+                return (
+                  <ScaleDecorator>
+                    <CardRow
+                      card={item}
+                      index={typeof i === "number" ? i + 1 : undefined}
+                      onPress={() =>
+                        router.push({ pathname: "/deck/[id]/card/[cardId]/edit", params: { id: deck.id, cardId: item.id } } as never)
+                      }
+                      onLongPress={() => setCardMenu(item)}
+                      onDragHandlePress={drag}
+                    />
+                  </ScaleDecorator>
+                );
+              }}
+            />
+          )}
+        </>
       )}
 
       <ActionSheet
@@ -300,4 +384,18 @@ const styles = StyleSheet.create({
   emptyCopy: { fontFamily: FONT_SERIF, fontSize: 14, fontStyle: "italic", textAlign: "center", maxWidth: 280, marginTop: 4 },
   menuBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
   menuGlyph: { fontSize: 26, lineHeight: 26, fontWeight: "700" },
+  filterRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingBottom: 12, gap: 8 },
+  filterInput: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    fontFamily: FONT_SERIF,
+    fontSize: 14,
+  },
+  filterClear: { width: 28, height: 28, alignItems: "center", justifyContent: "center" },
+  filterClearGlyph: { fontSize: 16 },
+  noFilterMatch: { padding: 24, alignItems: "center" },
+  noFilterText: { fontFamily: FONT_SERIF, fontSize: 14, fontStyle: "italic" },
 });
