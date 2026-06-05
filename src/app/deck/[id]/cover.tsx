@@ -107,39 +107,101 @@ export default function CoverScreen() {
 
       <Animated.View style={[{ flex: 1 }, enterStyle]}>
         <ScrollView
-          contentContainerStyle={[styles.scroll, { minHeight: height - 120 }]}
+          contentContainerStyle={[styles.scroll, { minHeight: height - 160 }]}
           showsVerticalScrollIndicator={false}
         >
-          {hasCover && (
-            <View
-              style={[
-                styles.coverFrame,
-                {
-                  borderColor: theme.colors.accentSoft,
-                  backgroundColor: theme.colors.bgCard,
-                },
-              ]}
-            >
-              <Image
-                source={{ uri: deck.coverImage as string }}
-                style={styles.coverImage}
-                resizeMode="cover"
-              />
-            </View>
-          )}
-
-          <Text style={[styles.emoji, { color: theme.colors.textPrimary }]}>
-            {deck.emoji ?? "✦"}
-          </Text>
-
-          <Text style={[styles.name, { color: theme.colors.textPrimary }]}>
-            {deck.name}
-          </Text>
-
-          <View style={{ width: 140, marginTop: 10, marginBottom: 12 }}>
-            <Ornament width={140} />
+          {/* The cover frame IS the book cover. If the deck has a
+              cover image, it fills the entire frame and the title sits
+              in a translucent parchment cartouche near the bottom. If
+              not, the frame becomes a typographic cover — emoji,
+              title, and ornament centered on bgCard. */}
+          <View
+            style={[
+              styles.coverFrame,
+              {
+                borderColor: theme.colors.accentSoft,
+                backgroundColor: theme.colors.bgCard,
+              },
+            ]}
+          >
+            {hasCover ? (
+              <>
+                <Image
+                  source={{ uri: deck.coverImage as string }}
+                  style={styles.coverImageFull}
+                  resizeMode="cover"
+                />
+                {/* Title cartouche overlaid on the cover image. Semi-
+                    translucent so the cover art shows through behind
+                    the title text — like a label printed on a dust
+                    jacket. Theme-aware so the cartouche stays legible
+                    in both modes. */}
+                <View
+                  style={[
+                    styles.titleBand,
+                    {
+                      backgroundColor:
+                        theme.mode === "light"
+                          ? "rgba(245, 236, 212, 0.92)"
+                          : "rgba(20, 22, 18, 0.88)",
+                      borderTopColor:
+                        theme.mode === "light"
+                          ? "rgba(60, 40, 20, 0.45)"
+                          : "rgba(240, 230, 207, 0.35)",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.emojiOnCover,
+                      { color: theme.colors.textPrimary },
+                    ]}
+                  >
+                    {deck.emoji ?? "✦"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.titleOnCover,
+                      { color: theme.colors.textPrimary },
+                    ]}
+                    numberOfLines={3}
+                  >
+                    {deck.name}
+                  </Text>
+                  <View style={{ width: 100, marginTop: 4 }}>
+                    <Ornament width={100} glyph="·" />
+                  </View>
+                </View>
+              </>
+            ) : (
+              <View style={styles.typographicCover}>
+                <Text
+                  style={[
+                    styles.emojiTypographic,
+                    { color: theme.colors.textPrimary },
+                  ]}
+                >
+                  {deck.emoji ?? "✦"}
+                </Text>
+                <Text
+                  style={[
+                    styles.titleTypographic,
+                    { color: theme.colors.textPrimary },
+                  ]}
+                  numberOfLines={4}
+                >
+                  {deck.name}
+                </Text>
+                <View style={{ width: 130, marginTop: 18 }}>
+                  <Ornament width={130} />
+                </View>
+              </View>
+            )}
           </View>
 
+          {/* Description and card count sit BELOW the cover, like
+              jacket flap copy. Description gets the italic Garamond
+              treatment; card count is small and muted. */}
           {deck.description ? (
             <Text style={[styles.desc, { color: theme.colors.textMuted }]}>
               {deck.description}
@@ -209,44 +271,86 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
   },
-  // Cover image framed like a manuscript folio — a hairline border in
-  // accentSoft on a bgCard background. The 0.7 aspect ratio gives a
-  // book-cover feel without forcing the source image into a square.
+  // The cover frame IS the book cover — large, portrait-oriented,
+  // bordered with a hairline accentSoft stroke and lifted by a soft
+  // drop shadow so it reads as a physical object resting on the
+  // paper page behind it. 75 % width × 0.68 aspect lands at typical
+  // hardcover proportions and stays comfortably tall on phone
+  // screens without dominating the layout.
   coverFrame: {
-    width: "70%",
-    aspectRatio: 0.7,
+    width: "75%",
+    aspectRatio: 0.68,
     borderRadius: 6,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
-    marginBottom: 16,
-    // Subtle drop shadow so the cover reads as resting above the page.
+    marginBottom: 18,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  coverImage: { width: "100%", height: "100%" },
-  emoji: { fontSize: 44, marginTop: 6 },
-  name: {
+  // When a cover image exists it fills the entire frame; positioned
+  // absolute so the title cartouche can overlay it without disturbing
+  // its layout.
+  coverImageFull: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: "100%",
+    height: "100%",
+  },
+  // Title cartouche — semi-translucent label at the bottom third of
+  // the cover with the emoji + name overlaid. Spans full frame width.
+  // Functions like a printed title strip on a real dust jacket.
+  titleBand: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    alignItems: "center",
+    gap: 4,
+  },
+  emojiOnCover: { fontSize: 22 },
+  titleOnCover: {
     fontFamily: FONT_DISPLAY,
-    fontSize: 30,
+    fontSize: 22,
     letterSpacing: 0.2,
     textAlign: "center",
-    marginTop: 4,
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
+  },
+  // Without a cover image, the frame becomes a typographic cover:
+  // emoji + title + ornament centered on bgCard.
+  typographicCover: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  emojiTypographic: { fontSize: 56, marginBottom: 12 },
+  titleTypographic: {
+    fontFamily: FONT_DISPLAY,
+    fontSize: 32,
+    letterSpacing: 0.2,
+    textAlign: "center",
+    paddingHorizontal: 4,
   },
   desc: {
     fontFamily: FONT_DISPLAY_ITALIC,
-    fontSize: 16,
+    fontSize: 15,
     textAlign: "center",
-    paddingHorizontal: 12,
-    marginTop: 2,
+    paddingHorizontal: 14,
+    marginTop: 4,
   },
   count: {
     fontFamily: FONT_DISPLAY_ITALIC,
     fontSize: 13,
-    marginTop: 12,
+    marginTop: 10,
     letterSpacing: 0.5,
   },
   footer: {
