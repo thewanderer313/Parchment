@@ -11,6 +11,7 @@ import {
   StyleSheet,
   useColorScheme,
 } from "react-native";
+import * as SplashScreen from "expo-splash-screen";
 import {
   useFonts,
   EBGaramond_400Regular,
@@ -25,6 +26,24 @@ import { useDecksStore } from "@/store/decksStore";
 import { useCardsStore } from "@/store/cardsStore";
 import { getDatabase } from "@/db/client";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ParchmentSplash } from "@/components/ParchmentSplash";
+
+// Pin the native splash up at module-load time so it doesn't auto-
+// dismiss the instant the JS bundle is ready. We dismiss it manually
+// once the JS-side splash overlay has mounted and is covering the
+// screen — that way the transition from native splash → JS splash is
+// just "dark screen with optional icon → dark screen with full art",
+// not a flicker through the empty app shell.
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // Already hidden — happens during fast-refresh in dev. Ignore.
+});
+
+// Minimum visible time at full opacity, so the user has a moment to
+// take in the title-page art before the app comes alive. If hydration
+// takes longer than this we'll still wait for the data; this floor
+// just prevents the splash from disappearing in a split second when
+// boot is fast.
+const MIN_FULL_VISIBILITY_MS = 1800;
 
 type BootStatus = "loading" | "ready" | "error";
 
@@ -102,6 +121,17 @@ export default function RootLayout() {
     EBGaramond_700Bold,
   });
 
+  // Splash state — three concerns:
+  //   minDurationDone   — has MIN_FULL_VISIBILITY_MS elapsed since boot
+  //   splashVisible     — should the splash overlay still be at full
+  //                       opacity (vs starting its fade-out)?
+  //   splashMounted     — is the splash component still mounted? It
+  //                       unmounts itself after the fade animation
+  //                       completes so it stops occupying GPU work.
+  const [minDurationDone, setMinDurationDone] = useState(false);
+  const [splashVisible, setSplashVisible] = useState(true);
+  const [splashMounted, setSplashMounted] = useState(true);
+
   const hydrate = () => {
     setStatus("loading");
     let cancelled = false;
@@ -127,18 +157,55 @@ export default function RootLayout() {
     return cancel;
   }, []);
 
-  if (status !== "ready" || !fontsLoaded) {
-    return <FullScreenStatus status={status} palette={bootPalette} onRetry={hydrate} />;
-  }
+  // Start the minimum-visibility timer + dismiss the native splash.
+  // The native splash is dismissed as soon as the JS layout is
+  // running so our JS splash takes over visually — we keep the JS
+  // overlay up for the user-facing lingering.
+  useEffect(() => {
+    const t = setTimeout(() => setMinDurationDone(true), MIN_FULL_VISIBILITY_MS);
+    SplashScreen.hideAsync().catch(() => {
+      // Already hidden / never shown (e.g., fast refresh). No-op.
+    });
+    return () => clearTimeout(t);
+  }, []);
+
+  // Start the fade-out once data is ready AND the minimum visible
+  // time has elapsed. After this flips false the splash component
+  // animates opacity → 0, then calls back into onHidden which clears
+  // splashMounted so the component unmounts.
+  useEffect(() => {
+    if (status === "ready" && fontsLoaded && minDurationDone) {
+      setSplashVisible(false);
+    }
+  }, [status, fontsLoaded, minDurationDone]);
+
+  // Body — the app or the boot-error fallback. The splash overlay
+  // sits on top regardless until splashMounted goes false.
+  const body =
+    status === "ready" && fontsLoaded ? (
+      <ThemeProvider mode={themeMode}>
+        <ThemedStack />
+      </ThemeProvider>
+    ) : status === "error" ? (
+      <FullScreenStatus status={status} palette={bootPalette} onRetry={hydrate} />
+    ) : (
+      // While loading, the splash is covering the screen anyway, so
+      // we render a transparent placeholder underneath. Avoids the
+      // ActivityIndicator briefly flashing through when the splash
+      // starts to fade.
+      <View style={{ flex: 1, backgroundColor: bootPalette.colors.bgApp }} />
+    );
 
   return (
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
-          <ThemeProvider mode={themeMode}>
-            <ThemedStack />
-          </ThemeProvider>
-        </SafeAreaProvider>
+        <SafeAreaProvider>{body}</SafeAreaProvider>
+        {splashMounted && (
+          <ParchmentSplash
+            visible={splashVisible}
+            onHidden={() => setSplashMounted(false)}
+          />
+        )}
       </GestureHandlerRootView>
     </ErrorBoundary>
   );

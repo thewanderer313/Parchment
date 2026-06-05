@@ -2,7 +2,7 @@
   "expo": {
     "name": "Parchment",
     "slug": "parchment",
-    "version": "0.3.2",
+    "version": "0.3.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "parchment",
@@ -32,17 +32,11 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#190901",
-          "image": "./assets/images/splashscreen.png",
-          "resizeMode": "cover",
           "android": {
-            "backgroundColor": "#190901",
-            "image": "./assets/images/splashscreen.png",
-            "resizeMode": "cover"
+            "backgroundColor": "#190901"
           },
           "ios": {
-            "backgroundColor": "#190901",
-            "image": "./assets/images/splashscreen.png",
-            "resizeMode": "cover"
+            "backgroundColor": "#190901"
           }
         }
       ],
