@@ -13,6 +13,7 @@ import { MarkdownText } from "@/components/MarkdownText";
 import { useReduceMotion } from "@/lib/useReduceMotion";
 import { PaperBackground } from "@/components/PaperBackground";
 import { CardJumpModal } from "@/components/CardJumpModal";
+import { ShuffleIcon } from "@/components/ShuffleIcon";
 
 function shuffleArray<T>(arr: T[]): T[] {
   const a = arr.slice();
@@ -176,11 +177,15 @@ export default function StudyScreen() {
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Toggle shuffle"
+          accessibilityLabel={shuffle ? "Disable shuffle" : "Enable shuffle"}
           onPress={() => setShuffle(!shuffle)}
           style={styles.iconBtn}
         >
-          <Text style={[styles.iconLabel, { color: shuffle ? theme.colors.accentPrimary : theme.colors.textMuted }]}>⇄</Text>
+          <ShuffleIcon
+            on={shuffle}
+            color={shuffle ? theme.colors.accentPrimary : theme.colors.textMuted}
+            size={22}
+          />
         </Pressable>
       </View>
 

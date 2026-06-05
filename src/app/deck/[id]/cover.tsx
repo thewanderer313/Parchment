@@ -22,6 +22,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { FONT_SERIF, FONT_DISPLAY, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
 import { PaperBackground } from "@/components/PaperBackground";
 import { Ornament } from "@/components/Ornament";
+import { ShuffleIcon } from "@/components/ShuffleIcon";
 
 // Title page — the deliberate moment between picking a book off the
 // bookshelf (Study tab) and actually reading it (Study session).
@@ -222,7 +223,11 @@ export default function CoverScreen() {
           style={[styles.shuffleBtn, { borderColor: theme.colors.accentSoft }]}
           hitSlop={6}
         >
-          <Text style={[styles.shuffleGlyph, { color: shuffle ? theme.colors.accentPrimary : theme.colors.textMuted }]}>⇄</Text>
+          <ShuffleIcon
+            on={shuffle}
+            color={shuffle ? theme.colors.accentPrimary : theme.colors.textMuted}
+            size={18}
+          />
           <Text style={[styles.shuffleLabel, { color: shuffle ? theme.colors.accentPrimary : theme.colors.textMuted }]}>
             Shuffle {shuffle ? "on" : "off"}
           </Text>
@@ -371,7 +376,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  shuffleGlyph: { fontSize: 16 },
   shuffleLabel: { fontFamily: FONT_DISPLAY_ITALIC, fontSize: 13 },
   beginBtn: {
     flex: 1,
