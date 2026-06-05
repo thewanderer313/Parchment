@@ -15,6 +15,16 @@ export const FONT_DISPLAY = "EBGaramond_700Bold";
 export const FONT_DISPLAY_ITALIC = "EBGaramond_400Regular_Italic";
 export const FONT_DISPLAY_REGULAR = "EBGaramond_400Regular";
 
+// FONT_OLDBOOK — IM Fell English, a digital revival of a 17th-century
+// English type cut by John Fell. Used only on the Study and Library
+// tab landing titles, where the irregularity and antique character
+// of the strokes signal "this is an old book" louder than EB Garamond
+// does. We keep EB Garamond as the workhorse display face for screen
+// titles inside Stack screens, ornament glyphs, and deck names —
+// FONT_OLDBOOK is reserved for the two big "front of the book" tabs.
+export const FONT_OLDBOOK = "IMFellEnglish_400Regular";
+export const FONT_OLDBOOK_ITALIC = "IMFellEnglish_400Regular_Italic";
+
 // The exact strings expected by @expo-google-fonts/eb-garamond's
 // useFonts() map. Kept here so font loading and font references share
 // one source of truth.

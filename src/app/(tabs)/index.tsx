@@ -13,7 +13,7 @@ import { PaperBackground } from "@/components/PaperBackground";
 import { OpenBookIllustration } from "@/components/EmptyIllustrations";
 import { packIntoShelves } from "@/lib/bookshelfLayout";
 import type { Deck } from "@/store/decksStore";
-import { FONT_SERIF, FONT_DISPLAY, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
+import { FONT_SERIF, FONT_DISPLAY, FONT_DISPLAY_ITALIC, FONT_OLDBOOK } from "@/theme/fonts";
 
 // Study tab — the app's default landing screen. Decks render as books
 // standing on wooden shelves; tapping a book starts a study session.
@@ -180,9 +180,9 @@ const styles = StyleSheet.create({
   },
   titleColumn: { alignItems: "flex-start" },
   title: {
-    fontFamily: FONT_DISPLAY,
-    fontSize: 38,
-    letterSpacing: 0.2,
+    fontFamily: FONT_OLDBOOK,
+    fontSize: 46,
+    letterSpacing: 0.5,
   },
   ornamentWrap: { marginTop: 2, marginBottom: 8, alignSelf: "stretch", alignItems: "flex-start" },
   subtitle: {
