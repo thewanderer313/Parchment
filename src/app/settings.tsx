@@ -44,7 +44,7 @@ export default function SettingsScreen() {
       <Stack.Screen options={{ title: "Settings" }} />
       <PaperBackground seed={0x88ba17} />
       <ScrollView contentContainerStyle={styles.body}>
-        <Text style={[styles.label, { color: theme.colors.textMuted }]}>Theme</Text>
+        <Text style={[styles.label, { color: theme.colors.textMuted, borderBottomColor: theme.colors.accentSoft }]}>Theme</Text>
         <View style={[styles.segment, { borderColor: theme.colors.accentSoft }]}>
           {THEME_SELECTIONS.map((mode: ThemeSelection) => (
             <Pressable
@@ -67,7 +67,7 @@ export default function SettingsScreen() {
           ))}
         </View>
 
-        <Text style={[styles.label, { color: theme.colors.textMuted }]}>Library</Text>
+        <Text style={[styles.label, { color: theme.colors.textMuted, borderBottomColor: theme.colors.accentSoft }]}>Library</Text>
         <Pressable
           onPress={onExport}
           disabled={busy}
@@ -93,7 +93,7 @@ export default function SettingsScreen() {
           <Text style={[styles.btnSub, { color: theme.colors.textMuted }]}>Paste the contents of a .json file (no file picker needed).</Text>
         </Pressable>
 
-        <Text style={[styles.label, { color: theme.colors.textMuted }]}>About</Text>
+        <Text style={[styles.label, { color: theme.colors.textMuted, borderBottomColor: theme.colors.accentSoft }]}>About</Text>
         <Text style={[styles.wordmark, { color: theme.colors.textPrimary }]}>
           Parchment
         </Text>
@@ -120,7 +120,10 @@ const styles = StyleSheet.create({
   body: { padding: 20, gap: 4 },
   label: {
     fontFamily: FONT_DISPLAY, fontSize: 11,
-    marginTop: 20, marginBottom: 8, textTransform: "uppercase", letterSpacing: 2,
+    marginTop: 26, marginBottom: 12,
+    textTransform: "uppercase", letterSpacing: 2.5,
+    paddingBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   segment: { flexDirection: "row", borderWidth: 1, borderRadius: 999, padding: 4, gap: 4 },
   segmentItem: { flex: 1, paddingVertical: 8, alignItems: "center", borderRadius: 999 },

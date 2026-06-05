@@ -1,11 +1,15 @@
 import React from "react";
 import { Pressable, Text, View, StyleSheet } from "react-native";
 import { useTheme } from "@/theme/ThemeProvider";
-import { FONT_SERIF } from "@/theme/fonts";
+import { FONT_SERIF, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
 import type { Card } from "@/store/cardsStore";
 
 interface Props {
   card: Card;
+  /** 1-based position in the deck. Renders as a small italic display-
+   *  serif numeral on the left of the row, like a chapter listing in a
+   *  table of contents. Optional; omitted = no numeral. */
+  index?: number;
   onPress: () => void;
   onLongPress: () => void;
   /** Optional drag handle press — when provided, a ≡ grip appears on the
@@ -19,7 +23,7 @@ function previewText(s: string): string {
   return trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
 }
 
-export function CardRow({ card, onPress, onLongPress, onDragHandlePress }: Props) {
+export function CardRow({ card, index, onPress, onLongPress, onDragHandlePress }: Props) {
   const { theme } = useTheme();
   const hasImage = card.frontImages.length > 0 || card.backImages.length > 0;
   const preview = previewText(card.frontText);
@@ -32,6 +36,11 @@ export function CardRow({ card, onPress, onLongPress, onDragHandlePress }: Props
       onLongPress={onLongPress}
       style={[styles.row, { backgroundColor: theme.colors.bgCard, borderColor: theme.colors.accentSoft }]}
     >
+      {index !== undefined && (
+        <Text style={[styles.numeral, { color: theme.colors.textMuted }]}>
+          {index}.
+        </Text>
+      )}
       <View style={styles.body}>
         <Text
           style={[
@@ -68,9 +77,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 14,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
     gap: 10,
+  },
+  numeral: {
+    fontFamily: FONT_DISPLAY_ITALIC,
+    fontSize: 15,
+    minWidth: 24,
+    textAlign: "right",
+    // Slightly muted so the body text remains the focus, but
+    // present enough to give the row a "table of contents" rhythm.
+    opacity: 0.85,
   },
   body: { flex: 1 },
   front: {

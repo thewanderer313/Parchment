@@ -98,6 +98,15 @@ const styles = StyleSheet.create({
     borderRightColor: "rgba(0,0,0,0.25)",
     borderLeftWidth: StyleSheet.hairlineWidth,
     borderLeftColor: "rgba(255,255,255,0.06)",
+    // Soft drop shadow so each book reads as RESTING on the shelf,
+    // not floating. iOS shadow props + Android elevation cover both
+    // platforms; the small height offset puts the shadow on the
+    // shelf plank below the book's foot.
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.5,
+    elevation: 2,
   },
   band: {
     position: "absolute",

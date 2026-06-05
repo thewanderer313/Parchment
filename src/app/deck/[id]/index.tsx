@@ -210,18 +210,22 @@ export default function DeckDetailScreen() {
               .reorder(deck.id, data.map((c) => c.id))
               .catch((e) => Alert.alert("Couldn't reorder cards", e.message));
           }}
-          renderItem={({ item, drag }: RenderItemParams<Card>) => (
-            <ScaleDecorator>
-              <CardRow
-                card={item}
-                onPress={() =>
-                  router.push({ pathname: "/deck/[id]/card/[cardId]/edit", params: { id: deck.id, cardId: item.id } } as never)
-                }
-                onLongPress={() => setCardMenu(item)}
-                onDragHandlePress={drag}
-              />
-            </ScaleDecorator>
-          )}
+          renderItem={({ item, drag, getIndex }: RenderItemParams<Card>) => {
+            const i = getIndex();
+            return (
+              <ScaleDecorator>
+                <CardRow
+                  card={item}
+                  index={typeof i === "number" ? i + 1 : undefined}
+                  onPress={() =>
+                    router.push({ pathname: "/deck/[id]/card/[cardId]/edit", params: { id: deck.id, cardId: item.id } } as never)
+                  }
+                  onLongPress={() => setCardMenu(item)}
+                  onDragHandlePress={drag}
+                />
+              </ScaleDecorator>
+            );
+          }}
         />
       )}
 
