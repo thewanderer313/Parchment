@@ -33,6 +33,12 @@ export default function DeckDetailScreen() {
   const loadByDeck = useCardsStore((s) => s.loadByDeck);
   const [deckMenuVisible, setDeckMenuVisible] = useState(false);
   const [cardMenu, setCardMenu] = useState<Card | null>(null);
+  // The "Move to another deck" picker — when non-null, an ActionSheet
+  // lists every other deck so the user can choose a destination. The
+  // card itself is captured in `moveCard` so closing/reopening the
+  // outer menu can't lose track of which card we were moving.
+  const [moveCard, setMoveCard] = useState<Card | null>(null);
+  const allDecks = useDecksStore((s) => s.decks);
 
   useEffect(() => {
     if (id) loadByDeck(id);
@@ -97,6 +103,24 @@ export default function DeckDetailScreen() {
     },
   ];
 
+  // Build the move-destination ActionSheet's items: every deck OTHER
+  // than the current one, ordered the same way as the Library grid.
+  // Closing the sheet sets moveCard to null and reopens nothing.
+  const moveDestinationItems: ActionSheetItem[] = moveCard
+    ? allDecks
+        .filter((d) => d.id !== deck.id)
+        .map<ActionSheetItem>((d) => ({
+          label: `${d.emoji ?? "·"}  ${d.name}`,
+          onPress: () => {
+            const cardId = moveCard.id;
+            useCardsStore
+              .getState()
+              .move(cardId, deck.id, d.id)
+              .catch((e) => Alert.alert("Couldn't move card", e?.message ?? String(e)));
+          },
+        }))
+    : [];
+
   const cardMenuItems: ActionSheetItem[] = cardMenu
     ? [
         {
@@ -108,12 +132,15 @@ export default function DeckDetailScreen() {
             } as never),
         },
         {
-          label: "Edit",
-          onPress: () =>
-            router.push({
-              pathname: "/deck/[id]/card/[cardId]/edit",
-              params: { id: deck.id, cardId: cardMenu.id },
-            } as never),
+          label: "Move to another deck…",
+          // Disabled (rendered greyed) if this is the only deck; we
+          // still surface the row so the user knows the feature is
+          // there, but tapping it does nothing useful so we just
+          // close the menu.
+          onPress: () => {
+            if (allDecks.length <= 1) return;
+            setMoveCard(cardMenu);
+          },
         },
         {
           label: "Delete",
@@ -243,6 +270,12 @@ export default function DeckDetailScreen() {
         title="Card"
         items={cardMenuItems}
         onClose={() => setCardMenu(null)}
+      />
+      <ActionSheet
+        visible={moveCard !== null}
+        title="Move card to…"
+        items={moveDestinationItems}
+        onClose={() => setMoveCard(null)}
       />
     </SafeAreaView>
   );
