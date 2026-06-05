@@ -1,8 +1,20 @@
 import React from "react";
 import { Pressable, View, Text, StyleSheet } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSequence,
+  withTiming,
+  Easing,
+} from "react-native-reanimated";
 import { FONT_DISPLAY, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
 import { SPINE_LABEL_COLOR, SPINE_LABEL_DIM, type SpineDims } from "@/lib/bookshelfLayout";
 import type { Deck } from "@/store/decksStore";
+
+// Pressable wrapped with Reanimated so the spine itself can carry the
+// lift animation without needing a wrapping Animated.View (which would
+// throw off bottom-alignment in the Shelf row).
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface Props {
   deck: Deck;
@@ -28,11 +40,38 @@ export function BookSpine({ deck, cardCount, dims, onPress, onLongPress }: Props
   // After the -90° rotate, that footprint becomes "narrow x tall" and
   // fits inside the spine.
   const labelTrack = dims.height - 56;
+
+  // Lift animation — the book pulls a few px off the shelf and tilts
+  // slightly when tapped, then settles back. Reads as "pulling a book
+  // out to read it", and gives press feedback without needing the
+  // tile-style opacity change.
+  //
+  // Out-cubic on the lift = pops quickly then decelerates as it
+  // peaks. In-cubic on the return = accelerates from the peak then
+  // settles — natural "falling back into place" curve.
+  const lift = useSharedValue(0);
+
+  const handlePress = () => {
+    lift.value = withSequence(
+      withTiming(1, { duration: 180, easing: Easing.out(Easing.cubic) }),
+      withTiming(0, { duration: 240, easing: Easing.in(Easing.cubic) })
+    );
+    onPress();
+  };
+
+  const liftStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: -10 * lift.value },
+      { rotate: `${-2.5 * lift.value}deg` },
+      { scale: 1 + 0.04 * lift.value },
+    ],
+  }));
+
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={`Study ${deck.name}`}
-      onPress={onPress}
+      onPress={handlePress}
       onLongPress={onLongPress}
       style={[
         styles.spine,
@@ -41,6 +80,7 @@ export function BookSpine({ deck, cardCount, dims, onPress, onLongPress }: Props
           height: dims.height,
           backgroundColor: dims.color,
         },
+        liftStyle,
       ]}
     >
       {/* Top banding — two hairlines mimicking a bound book's headcap */}
@@ -84,7 +124,7 @@ export function BookSpine({ deck, cardCount, dims, onPress, onLongPress }: Props
       <View style={styles.footDecor}>
         <Text style={styles.count}>{cardCount}</Text>
       </View>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
