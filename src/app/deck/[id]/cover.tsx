@@ -111,17 +111,25 @@ export default function CoverScreen() {
           contentContainerStyle={[styles.scroll, { minHeight: height - 160 }]}
           showsVerticalScrollIndicator={false}
         >
-          {/* The cover frame IS the book cover. If the deck has a
-              cover image, it fills the entire frame and the title sits
-              in a translucent parchment cartouche near the bottom. If
-              not, the frame becomes a typographic cover — emoji,
-              title, and ornament centered on bgCard. */}
-          <View
-            style={[
+          {/* The cover frame IS the book cover AND the action target —
+              tap anywhere on it to open the deck for reading. If the
+              deck has a cover image, it fills the entire frame and the
+              title sits in a translucent parchment cartouche near the
+              bottom. If not, the frame becomes a typographic cover —
+              emoji, title, and ornament centered on bgCard. Empty deck
+              → frame is disabled and fades out, matching the "(empty)"
+              line below it. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${deck.name} for reading`}
+            onPress={beginStudy}
+            disabled={count === 0}
+            style={({ pressed }) => [
               styles.coverFrame,
               {
                 borderColor: theme.colors.accentSoft,
                 backgroundColor: theme.colors.bgCard,
+                opacity: count === 0 ? 0.4 : pressed ? 0.88 : 1,
               },
             ]}
           >
@@ -198,7 +206,7 @@ export default function CoverScreen() {
                 </View>
               </View>
             )}
-          </View>
+          </Pressable>
 
           {/* Description and card count sit BELOW the cover, like
               jacket flap copy. Description gets the italic Garamond
@@ -230,21 +238,6 @@ export default function CoverScreen() {
           />
           <Text style={[styles.shuffleLabel, { color: shuffle ? theme.colors.accentPrimary : theme.colors.textMuted }]}>
             Shuffle {shuffle ? "on" : "off"}
-          </Text>
-        </Pressable>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Begin reading"
-          onPress={beginStudy}
-          disabled={count === 0}
-          style={[
-            styles.beginBtn,
-            { backgroundColor: theme.colors.accentPrimary, opacity: count === 0 ? 0.4 : 1 },
-          ]}
-        >
-          <Text style={[styles.beginLabel, { color: theme.colors.bgCard }]}>
-            {count === 0 ? "Empty deck" : "Begin reading"}
           </Text>
         </Pressable>
       </View>
@@ -361,27 +354,19 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     paddingHorizontal: 20,
-    paddingBottom: 14,
+    paddingBottom: 16,
     paddingTop: 10,
-    gap: 12,
   },
   shuffleBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
+    gap: 8,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
   },
   shuffleLabel: { fontFamily: FONT_DISPLAY_ITALIC, fontSize: 13 },
-  beginBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 999,
-    alignItems: "center",
-  },
-  beginLabel: { fontFamily: FONT_DISPLAY, fontSize: 15, letterSpacing: 0.5 },
 });
