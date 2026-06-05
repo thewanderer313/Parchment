@@ -1,4 +1,4 @@
-export type ThemeMode = "light" | "dark";
+export type ThemeMode = "light" | "dark" | "leather";
 
 export const THEME_SELECTIONS = ["system", "light", "dark", "leather"] as const;
 export type ThemeSelection = (typeof THEME_SELECTIONS)[number];
@@ -47,12 +47,13 @@ export const darkTheme: Theme = {
 // "Leather" — a third theme styled after the deep, warm interior of
 // an aged study: rich saddle-brown backgrounds, parchment-cream text,
 // brass-gold for the primary accent (echoing gilt book-spine titles).
-// Classified as `mode: "dark"` so the status bar and any other
-// "is this a dark surface?" checks (PaperBackground vignette, etc.)
-// fall through to the dark-mode branch — which is correct, because
-// the leather palette is dark on top.
+// Carries its own `mode: "leather"` identifier so components that
+// want a leather-specific look (warm walnut shelves, brown cartouche,
+// sepia paper grain) can branch on it explicitly. For "is this a
+// dark surface?" checks, treat any non-"light" mode the same way —
+// `theme.mode !== "light"` is the right gate.
 export const leatherTheme: Theme = {
-  mode: "dark",
+  mode: "leather",
   colors: {
     // Deep saddle brown — the polished oak / leather chair feel.
     bgApp: "#3d2818",

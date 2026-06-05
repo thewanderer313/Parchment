@@ -75,12 +75,25 @@ export function PaperBackground({ seed = 0x9e3779 }: Props) {
     [seed, width, height, dotCount]
   );
 
-  // Light vs dark mode tints — light uses warm sepia, dark uses near-
-  // black. Both very low opacity. We never use a literal brown in
-  // dark mode because it'd lift the corners too obviously.
-  const grainColor = theme.mode === "light" ? "#3a2a14" : "#000000";
-  const vignetteColor = theme.mode === "light" ? "#3a2a14" : "#000000";
-  const vignetteEnd = theme.mode === "light" ? 0.14 : 0.32;
+  // Three-way tint fork:
+  //   light   → warm sepia grain + sepia vignette at 14 % (paper)
+  //   dark    → black grain + black vignette at 32 % (deep slate)
+  //   leather → sepia grain + very-dark-warm-brown vignette at 22 %
+  //             so the corners read as room shadows rather than the
+  //             flat black that dark uses (which goes muddy on the
+  //             warm saddle-brown bgApp).
+  const grainColor =
+    theme.mode === "light" ? "#3a2a14" :
+    theme.mode === "leather" ? "#3a2a14" :
+    "#000000";
+  const vignetteColor =
+    theme.mode === "light" ? "#3a2a14" :
+    theme.mode === "leather" ? "#1a0d04" :
+    "#000000";
+  const vignetteEnd =
+    theme.mode === "light" ? 0.14 :
+    theme.mode === "leather" ? 0.22 :
+    0.32;
 
   return (
     <Svg

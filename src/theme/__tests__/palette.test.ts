@@ -57,10 +57,11 @@ describe("theme palette", () => {
     }
   });
 
-  it("classifies the leather theme as a dark surface", () => {
-    // mode = "dark" so PaperBackground vignette, StatusBar tint, and
-    // any other "is this a dark theme?" branches do the right thing.
-    expect(leatherTheme.mode).toBe("dark");
+  it("carries its own mode identifier", () => {
+    // Distinct mode lets components fork three ways: light / dark /
+    // leather. For "is this a dark surface?" gates, use
+    // `mode !== "light"`.
+    expect(leatherTheme.mode).toBe("leather");
   });
 
   it("exposes leather as a selectable theme option", () => {

@@ -2,7 +2,7 @@ import React from "react";
 import { Text } from "react-native";
 import { render, screen } from "@testing-library/react-native";
 import { ThemeProvider, useTheme } from "../ThemeProvider";
-import { lightTheme, darkTheme } from "../palette";
+import { lightTheme, darkTheme, leatherTheme } from "../palette";
 
 // We mock the internal path used by React Native's useColorScheme implementation
 // rather than the public "react-native" export. The public-export approach
@@ -39,6 +39,16 @@ describe("ThemeProvider", () => {
       </ThemeProvider>
     );
     expect(screen.getByTestId("probe")).toHaveTextContent(`dark:${darkTheme.colors.bgApp}`);
+  });
+
+  it("uses leather theme when explicitly selected, regardless of system scheme", () => {
+    useColorScheme.mockReturnValue("light");
+    render(
+      <ThemeProvider mode="leather">
+        <Probe />
+      </ThemeProvider>
+    );
+    expect(screen.getByTestId("probe")).toHaveTextContent(`leather:${leatherTheme.colors.bgApp}`);
   });
 
   it("overrides system preference when an explicit mode is provided", () => {

@@ -28,23 +28,37 @@ const COMPARTMENT_MIN_HEIGHT = 150;
 
 export function Shelf({ children, width }: Props) {
   const { theme } = useTheme();
-  // Wood tone for the plank — derived from the theme so the shelf
-  // stays palette-consistent in light and dark mode without baking
-  // in literal browns.
+  // Wood tone for the plank — three-way fork so the shelf reads
+  // palette-consistent in every theme:
+  //   light   → warm tan plank, cream lip, sepia shadow (oak-on-paper)
+  //   dark    → slate plank, brighter slate lip, near-black shadow
+  //             (industrial / nighttime feel)
+  //   leather → caramel walnut plank, lighter walnut lip, deep warm
+  //             shadow (the wood of an aged study)
   const plankColor =
-    theme.mode === "light" ? "#b89e6f" : "#3a3a32";
+    theme.mode === "light" ? "#b89e6f" :
+    theme.mode === "leather" ? "#6a4828" :
+    "#3a3a32";
   const plankLip =
-    theme.mode === "light" ? "#d7c098" : "#5a5a4a";
+    theme.mode === "light" ? "#d7c098" :
+    theme.mode === "leather" ? "#8a6238" :
+    "#5a5a4a";
   const plankShadow =
-    theme.mode === "light" ? "rgba(60, 40, 20, 0.25)" : "rgba(0, 0, 0, 0.4)";
+    theme.mode === "light" ? "rgba(60, 40, 20, 0.25)" :
+    theme.mode === "leather" ? "rgba(15, 5, 0, 0.5)" :
+    "rgba(0, 0, 0, 0.4)";
   // Back panel: slightly darker than bgApp so it reads as "behind."
-  // A subtle top edge shadow line suggests the underside of the shelf
-  // above — the cabinet interior gets a little darker where the next
-  // plank casts shade on the back wall.
+  // For leather, that means a deeper saddle-brown recess — not the
+  // near-black used in dark mode, which would clash with the warm
+  // surrounding palette.
   const backPanelColor =
-    theme.mode === "light" ? "#d8cca6" : "#15191a";
+    theme.mode === "light" ? "#d8cca6" :
+    theme.mode === "leather" ? "#2a1810" :
+    "#15191a";
   const backTopShadow =
-    theme.mode === "light" ? "rgba(50, 30, 12, 0.18)" : "rgba(0, 0, 0, 0.5)";
+    theme.mode === "light" ? "rgba(50, 30, 12, 0.18)" :
+    theme.mode === "leather" ? "rgba(15, 5, 0, 0.5)" :
+    "rgba(0, 0, 0, 0.5)";
 
   return (
     <View style={[styles.wrap, { width }]}>

@@ -149,13 +149,25 @@ export default function CoverScreen() {
                   style={[
                     styles.titleBand,
                     {
+                      // Cartouche background:
+                      //   light   → parchment-cream label strip
+                      //   dark    → near-black slate
+                      //   leather → rich saddle-brown leather plaque
+                      // Border-top is a thin highlight on the
+                      // cartouche's top edge — sepia on light,
+                      // cream on dark/leather (so the lip catches
+                      // the eye against the darker cover behind).
                       backgroundColor:
                         theme.mode === "light"
                           ? "rgba(245, 236, 212, 0.92)"
+                          : theme.mode === "leather"
+                          ? "rgba(50, 30, 16, 0.92)"
                           : "rgba(20, 22, 18, 0.88)",
                       borderTopColor:
                         theme.mode === "light"
                           ? "rgba(60, 40, 20, 0.45)"
+                          : theme.mode === "leather"
+                          ? "rgba(240, 220, 180, 0.4)"
                           : "rgba(240, 230, 207, 0.35)",
                     },
                   ]}

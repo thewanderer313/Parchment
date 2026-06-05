@@ -52,7 +52,9 @@ function ThemedStack() {
   const { theme } = useTheme();
   return (
     <>
-      <StatusBar style={theme.mode === "dark" ? "light" : "dark"} />
+      {/* Light icons on any dark surface (dark + leather), dark icons
+          on the parchment light field. */}
+      <StatusBar style={theme.mode === "light" ? "dark" : "light"} />
       <Stack
         screenOptions={{
           contentStyle: { backgroundColor: theme.colors.bgApp },
