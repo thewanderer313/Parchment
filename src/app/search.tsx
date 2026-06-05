@@ -134,11 +134,6 @@ function ResultRow({ result, onPress }: { result: SearchResult; onPress: () => v
   const preview = (previewSource || "(empty)").trim().slice(0, 140);
   const isEmpty = !previewSource.trim();
 
-  // Small badge text telling the user where the match was.
-  const matchedLabel =
-    matchedIn === "front" ? "front" :
-    matchedIn === "back" ? "back" : "deck info";
-
   return (
     <Pressable
       accessibilityRole="button"
@@ -149,27 +144,35 @@ function ResultRow({ result, onPress }: { result: SearchResult; onPress: () => v
         { backgroundColor: theme.colors.bgCard, borderColor: theme.colors.accentSoft },
       ]}
     >
-      <View style={styles.deckLine}>
-        <Text style={[styles.deckEmoji, { color: theme.colors.textMuted }]}>{deck.emoji ?? "·"}</Text>
-        <Text style={[styles.deckName, { color: theme.colors.textBody }]} numberOfLines={1}>
-          {deck.name}
-        </Text>
-        <Text style={[styles.matchBadge, { color: theme.colors.textMuted }]}>
-          matched in {matchedLabel}
+      {/* Preview text occupies the main left area; the deck identity
+          sits in a column on the right so the user always sees which
+          book the card belongs to without needing a "matched in X"
+          confirmation badge. */}
+      <View style={styles.previewCol}>
+        <Text
+          style={[
+            styles.preview,
+            {
+              color: isEmpty ? theme.colors.textMuted : theme.colors.textPrimary,
+              fontStyle: isEmpty ? "italic" : "normal",
+            },
+          ]}
+          numberOfLines={3}
+        >
+          {preview}
         </Text>
       </View>
-      <Text
-        style={[
-          styles.preview,
-          {
-            color: isEmpty ? theme.colors.textMuted : theme.colors.textPrimary,
-            fontStyle: isEmpty ? "italic" : "normal",
-          },
-        ]}
-        numberOfLines={3}
-      >
-        {preview}
-      </Text>
+      <View style={[styles.deckCol, { borderLeftColor: theme.colors.accentSoft }]}>
+        <Text style={[styles.deckEmoji, { color: theme.colors.textPrimary }]}>
+          {deck.emoji ?? "·"}
+        </Text>
+        <Text
+          style={[styles.deckName, { color: theme.colors.textMuted }]}
+          numberOfLines={2}
+        >
+          {deck.name}
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -231,21 +234,36 @@ const styles = StyleSheet.create({
   clearGlyph: { fontSize: 18 },
   list: { paddingHorizontal: 16, paddingBottom: 24 },
   row: {
+    flexDirection: "row",
     borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
     paddingVertical: 12,
-    paddingHorizontal: 14,
-    gap: 6,
+    paddingLeft: 14,
+    paddingRight: 12,
+    gap: 12,
+    alignItems: "stretch",
   },
-  deckLine: { flexDirection: "row", alignItems: "center", gap: 8 },
-  deckEmoji: { fontSize: 16 },
-  deckName: { fontFamily: FONT_DISPLAY, fontSize: 14, flexShrink: 1 },
-  matchBadge: {
+  // Main left column — preview text takes the bulk of the row.
+  previewCol: { flex: 1, justifyContent: "center" },
+  // Right column — the deck identity, separated from the preview by
+  // a hairline rule. Functions as a "this card lives here" label so
+  // the user can scan results by source.
+  deckCol: {
+    width: 96,
+    paddingLeft: 12,
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    alignItems: "flex-start",
+    justifyContent: "center",
+    gap: 4,
+  },
+  deckEmoji: { fontSize: 18 },
+  deckName: {
     fontFamily: FONT_DISPLAY_ITALIC,
-    fontSize: 11,
-    marginLeft: "auto",
+    fontSize: 12,
+    letterSpacing: 0.1,
+    lineHeight: 15,
   },
-  preview: { fontFamily: FONT_SERIF, fontSize: 14 },
+  preview: { fontFamily: FONT_SERIF, fontSize: 14, lineHeight: 20 },
   empty: {
     flex: 1,
     alignItems: "center",
