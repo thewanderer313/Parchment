@@ -9,6 +9,7 @@ import { ActionSheet, type ActionSheetItem } from "@/components/ActionSheet";
 import { Ornament } from "@/components/Ornament";
 import { BookSpine } from "@/components/BookSpine";
 import { Shelf, SIDE_RAIL_WIDTH } from "@/components/Shelf";
+import { BookcaseCornice } from "@/components/BookcaseCornice";
 import { PaperBackground } from "@/components/PaperBackground";
 import { OpenBookIllustration } from "@/components/EmptyIllustrations";
 import { packIntoShelves } from "@/lib/bookshelfLayout";
@@ -107,6 +108,10 @@ export default function StudyTab() {
           data={shelves}
           keyExtractor={(s) => s.id}
           contentContainerStyle={styles.list}
+          // Crown moulding above the topmost shelf. The cornice caps
+          // the continuous side rails at the top and visually closes
+          // the cabinet.
+          ListHeaderComponent={<BookcaseCornice width={shelfWidth} />}
           renderItem={({ item }) => (
             <Shelf width={shelfWidth}>
               {item.books.map(({ deck, dims }) => (
@@ -163,6 +168,7 @@ function EmptyShelves({ shelfWidth }: { shelfWidth: number }) {
         Hop over to the Library tab to compose your first deck.
       </Text>
       <View style={styles.emptyShelves}>
+        <BookcaseCornice width={shelfWidth} />
         <Shelf width={shelfWidth}>
           <View style={{ height: 1 }} />
         </Shelf>
