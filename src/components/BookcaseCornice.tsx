@@ -78,10 +78,15 @@ export function BookcaseCornice({ width }: Props) {
           />
         ))}
       </View>
-      {/* Centred rosette — small ✦ in the highlight tone, the
-          cabinet's nameplate. */}
+      {/* Centred rosette trio — three ✦ glyphs in a row, in the
+          highlight tone. Reads as a row of small carved/inlaid
+          rosettes along the cabinet's nameplate band. */}
       <View style={styles.ornamentSlot} pointerEvents="none">
-        <Text style={[styles.ornamentGlyph, { color: plankLip }]}>✦</Text>
+        <View style={styles.ornamentRow}>
+          <Text style={[styles.ornamentGlyph, { color: plankLip }]}>✦</Text>
+          <Text style={[styles.ornamentGlyph, { color: plankLip }]}>✦</Text>
+          <Text style={[styles.ornamentGlyph, { color: plankLip }]}>✦</Text>
+        </View>
       </View>
       {/* Lower chamfer line — mirrors the upper chamfer. */}
       <View style={[styles.lowerChamfer, { backgroundColor: plankShadow }]} />
@@ -135,6 +140,11 @@ const styles = StyleSheet.create({
     bottom: 4,
     alignItems: "center",
     justifyContent: "center",
+  },
+  ornamentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 32,
   },
   ornamentGlyph: {
     fontFamily: FONT_DISPLAY,
