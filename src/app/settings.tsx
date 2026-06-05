@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, Pressable, StyleSheet, Alert, ScrollView } from "react-native";
+import { View, Text, Pressable, StyleSheet, Alert, ScrollView, Modal, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack } from "expo-router";
 import Constants from "expo-constants";
@@ -21,6 +21,10 @@ export default function SettingsScreen() {
   const setThemeMode = useSettingsStore((s) => s.setThemeMode);
   const [exporting, setExporting] = useState(false);
   const [pasteOpen, setPasteOpen] = useState(false);
+  // Title page viewer — opens the splash image as a full-screen modal
+  // so the user can dwell on it whenever they want, not just at app
+  // launch. Tap anywhere to dismiss.
+  const [titlePageOpen, setTitlePageOpen] = useState(false);
   const { busy: importing, importFromFile, importFromText } = useDeckImport();
   const busy = exporting || importing;
 
@@ -94,6 +98,13 @@ export default function SettingsScreen() {
         </Pressable>
 
         <Text style={[styles.label, { color: theme.colors.textMuted, borderBottomColor: theme.colors.accentSoft }]}>About</Text>
+        <Pressable
+          onPress={() => setTitlePageOpen(true)}
+          style={[styles.btn, { borderColor: theme.colors.accentSoft }]}
+        >
+          <Text style={[styles.btnLabel, { color: theme.colors.textBody }]}>View title page</Text>
+          <Text style={[styles.btnSub, { color: theme.colors.textMuted }]}>Sit with the splash art for a moment.</Text>
+        </Pressable>
         <Text style={[styles.wordmark, { color: theme.colors.textPrimary }]}>
           Parchment
         </Text>
@@ -111,6 +122,32 @@ export default function SettingsScreen() {
         onClose={() => setPasteOpen(false)}
         onImport={importFromText}
       />
+
+      {/* Title page viewer modal. Full-screen splash art with the
+          single dismiss interaction being "tap anywhere." The
+          backgroundColor matches the splash image's corners so
+          there's no flash of the wrong colour while the modal slides
+          in. */}
+      <Modal
+        visible={titlePageOpen}
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setTitlePageOpen(false)}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close title page"
+          onPress={() => setTitlePageOpen(false)}
+          style={styles.titlePageBackdrop}
+        >
+          <Image
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            source={require("../../assets/images/splashscreen.png")}
+            style={styles.titlePageImage}
+            resizeMode="cover"
+          />
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -146,5 +183,13 @@ const styles = StyleSheet.create({
     fontFamily: FONT_DISPLAY_ITALIC,
     fontSize: 14,
     marginTop: 8,
+  },
+  titlePageBackdrop: {
+    flex: 1,
+    backgroundColor: "#190901",
+  },
+  titlePageImage: {
+    width: "100%",
+    height: "100%",
   },
 });
