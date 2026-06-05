@@ -689,6 +689,67 @@ function insertSyntax(idx, side, action) {
   setStatus("");
 }
 
+// Resize/recompress an image so the exported JSON stays manageable. The
+// phone app's pipeline uses 1600px max edge, JPEG q 0.85 — match that here
+// so a composer-built deck and an on-device-built deck behave the same.
+//
+// If re-encoding would actually grow the payload (small heavily-compressed
+// source images), we keep the original data URI instead of bloating it.
+function shrinkImage(file, maxEdge, quality) {
+  if (maxEdge === undefined) maxEdge = 1600;
+  if (quality === undefined) quality = 0.85;
+  return new Promise(function (resolve, reject) {
+    const reader = new FileReader();
+    reader.onerror = function () { reject(reader.error || new Error("read failed")); };
+    reader.onload = function () {
+      const origDataUri = reader.result;
+      const img = new Image();
+      img.onerror = function () { reject(new Error("couldn't decode image")); };
+      img.onload = function () {
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+        const longest = Math.max(w, h);
+        const scale = longest > maxEdge ? maxEdge / longest : 1;
+        const dw = Math.max(1, Math.round(w * scale));
+        const dh = Math.max(1, Math.round(h * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = dw;
+        canvas.height = dh;
+        const ctx = canvas.getContext("2d");
+        // Paint white first so transparent PNGs/WebPs don't end up with
+        // black backgrounds after the JPEG re-encode.
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, dw, dh);
+        ctx.drawImage(img, 0, 0, dw, dh);
+        const shrunk = canvas.toDataURL("image/jpeg", quality);
+        const chosen = shrunk.length < origDataUri.length ? shrunk : origDataUri;
+        // Approx byte count for a base64 payload: ignore the "data:..;base64,"
+        // header and apply the 3/4 ratio. Good enough for status messages.
+        const approxBytes = function (uri) {
+          const i = uri.indexOf(",");
+          const body = i >= 0 ? uri.length - i - 1 : uri.length;
+          return Math.round(body * 0.75);
+        };
+        resolve({
+          dataUri: chosen,
+          origBytes: approxBytes(origDataUri),
+          newBytes: approxBytes(chosen),
+          width: dw,
+          height: dh,
+        });
+      };
+      img.src = origDataUri;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function formatBytes(n) {
+  if (n < 1024) return n + " B";
+  if (n < 1024 * 1024) return Math.round(n / 1024) + " KB";
+  return (n / (1024 * 1024)).toFixed(1) + " MB";
+}
+
 function chooseImage(idx, side) {
   const input = document.createElement("input");
   input.type = "file";
@@ -696,15 +757,18 @@ function chooseImage(idx, side) {
   input.onchange = function (e) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function () {
-      const dataUri = reader.result;
-      state.cards[idx][side === "front" ? "front_images" : "back_images"] = [dataUri];
+    setStatus("Resizing image…");
+    shrinkImage(file).then(function (r) {
+      state.cards[idx][side === "front" ? "front_images" : "back_images"] = [r.dataUri];
       state.cards[idx][side === "front" ? "front_file_name" : "back_file_name"] = file.name;
       render();
-      setStatus("");
-    };
-    reader.readAsDataURL(file);
+      setStatus(
+        "Image added (" + r.width + "×" + r.height + ", " +
+        formatBytes(r.origBytes) + " → " + formatBytes(r.newBytes) + ")"
+      );
+    }).catch(function (err) {
+      setStatus("Couldn't process image: " + (err.message || err));
+    });
   };
   input.click();
 }
@@ -1037,13 +1101,18 @@ document.addEventListener("click", function (e) {
 $("coverInput").addEventListener("change", function (e) {
   const file = e.target.files && e.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function () {
-    state.deck.cover_image = reader.result;
+  setStatus("Resizing cover…");
+  shrinkImage(file).then(function (r) {
+    state.deck.cover_image = r.dataUri;
     state.deck.cover_file_name = file.name;
     render();
-  };
-  reader.readAsDataURL(file);
+    setStatus(
+      "Cover added (" + r.width + "×" + r.height + ", " +
+      formatBytes(r.origBytes) + " → " + formatBytes(r.newBytes) + ")"
+    );
+  }).catch(function (err) {
+    setStatus("Couldn't process cover: " + (err.message || err));
+  });
 });
 
 $("jsonInput").addEventListener("change", function (e) {
