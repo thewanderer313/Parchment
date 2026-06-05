@@ -75,11 +75,11 @@ export default function StudyTab() {
           <View style={styles.ornamentWrap}>
             <Ornament width={84} />
           </View>
-          <Text style={[styles.subtitle, { color: theme.colors.textMuted }]}>
-            {decks.length === 0
-              ? "Nothing on your desk just yet"
-              : `Pull a book down to read`}
-          </Text>
+          {decks.length === 0 && (
+            <Text style={[styles.subtitle, { color: theme.colors.textMuted }]}>
+              Nothing on your desk just yet
+            </Text>
+          )}
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <Pressable
