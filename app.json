@@ -2,7 +2,7 @@
   "expo": {
     "name": "Parchment",
     "slug": "parchment",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "parchment",
@@ -10,7 +10,7 @@
     "ios": {
       "bundleIdentifier": "app.parchment.ios",
       "supportsTablet": false,
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/images/icon.png"
     },
     "android": {
       "package": "app.parchment.android",
@@ -32,9 +32,15 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#e8dec5",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 180,
           "android": {
             "image": "./assets/images/splash-icon.png",
-            "imageWidth": 76
+            "imageWidth": 180
+          },
+          "ios": {
+            "image": "./assets/images/splash-icon.png",
+            "imageWidth": 180
           }
         }
       ],
