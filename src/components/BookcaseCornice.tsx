@@ -7,28 +7,32 @@ interface Props {
   width: number;
 }
 
-// Crown moulding above the topmost shelf. Designed as a refined
-// architectural profile rather than a flat plank:
+// Crown moulding above the topmost shelf. Designed as a stepped
+// classical cornice profile:
 //
-//   ═════════════════════════════════════════   ← top highlight (catches light)
-//   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─    ← upper chamfer line
+//   ═════════════════════════════════════════════════════════   top edge
+//   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─    upper chamfer
+//   ▀  ▀  ▀  ▀  ▀  ▀  ▀  ▀  ▀  ▀  ▀  ▀  ▀  ▀  ▀  ▀  ▀  ▀  ▀     dentil course
+//                            ✦                                  centred rosette
+//   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─    lower chamfer
+//   ═════════════════════════════════════════════════════════   bottom shadow
 //
-//                       ✦                       ← centred ornament
-//
-//   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─    ← lower chamfer line
-//   ═════════════════════════════════════════   ← bottom shadow
-//
-// The two chamfer lines bracket the ornament and suggest the stepped
-// profile a real cornice moulding has — without forcing us to draw
-// actual curved bevels. The centred ✦ in plankLip (the same colour as
-// the light-catching highlights) reads as a small carved or inlaid
-// rosette: the cabinet's nameplate, basically.
-const CORNICE_HEIGHT = 26;
+// The dentil course is a row of small light-catching blocks running
+// across the cornice — a classical Greek/Roman moulding feature that
+// reads as "this is real carved millwork, not just a painted board."
+// Each block renders in plankLip (the wood's highlight tone), so the
+// course reads as a row of small projecting teeth lit from above; the
+// gaps between are filled by the plank-colour body underneath, which
+// reads as the recessed shadow between teeth.
+const CORNICE_HEIGHT = 32;
+const DENTIL_SIZE = 5;
+const DENTIL_GAP = 4;
+const DENTIL_SIDE_INSET = 10;
 
 export function BookcaseCornice({ width }: Props) {
   const { theme } = useTheme();
-  // Per-theme wood tones — same fork as Shelf so the cornice reads
-  // as the same piece of furniture.
+  // Per-theme wood tones — same fork as Shelf so the cornice belongs
+  // to the same piece of furniture.
   const plankColor =
     theme.mode === "light" ? "#b89e6f" :
     theme.mode === "leather" ? "#6a4828" :
@@ -42,21 +46,44 @@ export function BookcaseCornice({ width }: Props) {
     theme.mode === "leather" ? "rgba(15, 5, 0, 0.5)" :
     "rgba(0, 0, 0, 0.4)";
 
+  // How many dentil teeth fit across the cornice, given the inset on
+  // each side and the per-tooth footprint (block + gap). We use the
+  // exact integer count so the row stays symmetric — leftover width
+  // becomes a tiny extra inset on each side rather than a half-tooth
+  // at the right edge.
+  const dentilSpan = width - 2 * DENTIL_SIDE_INSET;
+  const dentilStride = DENTIL_SIZE + DENTIL_GAP;
+  const dentilCount = Math.max(
+    0,
+    Math.floor((dentilSpan + DENTIL_GAP) / dentilStride)
+  );
+
   return (
     <View style={[styles.cornice, { width, backgroundColor: plankColor }]}>
       {/* Top edge — 1 px highlight catching the room light. */}
       <View style={[styles.topLip, { backgroundColor: plankLip }]} />
-      {/* Upper chamfer line — suggests the first step in the
-          stepped moulding profile. */}
+      {/* Upper chamfer line — first step in the stepped profile. */}
       <View style={[styles.upperChamfer, { backgroundColor: plankShadow }]} />
-      {/* Centred ornament — a small ✦ in the highlight tone, sized
-          to feel like a carved rosette rather than a typographic
-          glyph. */}
+      {/* Dentil course — row of small projecting teeth in plankLip. */}
+      <View style={styles.dentilCourse}>
+        {Array.from({ length: dentilCount }).map((_, i) => (
+          <View
+            key={i}
+            style={{
+              width: DENTIL_SIZE,
+              height: DENTIL_SIZE,
+              backgroundColor: plankLip,
+              opacity: 0.85,
+            }}
+          />
+        ))}
+      </View>
+      {/* Centred rosette — small ✦ in the highlight tone, the
+          cabinet's nameplate. */}
       <View style={styles.ornamentSlot} pointerEvents="none">
         <Text style={[styles.ornamentGlyph, { color: plankLip }]}>✦</Text>
       </View>
-      {/* Lower chamfer line — mirrors the upper chamfer, bracketing
-          the ornament between two symmetric steps. */}
+      {/* Lower chamfer line — mirrors the upper chamfer. */}
       <View style={[styles.lowerChamfer, { backgroundColor: plankShadow }]} />
       {/* Bottom edge — 2 px shadow where the cornice meets the
           topmost compartment. */}
@@ -81,20 +108,31 @@ const styles = StyleSheet.create({
   },
   upperChamfer: {
     position: "absolute",
-    top: 5,
+    top: 4,
     left: 0,
     right: 0,
     height: 1,
     opacity: 0.5,
   },
-  // The slot fills the full cornice — alignItems: center vertically
-  // centres the ornament glyph between the chamfer lines.
+  dentilCourse: {
+    position: "absolute",
+    top: 8,
+    left: DENTIL_SIDE_INSET,
+    right: DENTIL_SIDE_INSET,
+    height: DENTIL_SIZE,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  // Rosette slot is positioned BELOW the dentil course (top: 14) so
+  // the glyph centres in the lower half of the cornice rather than
+  // landing on top of the teeth.
   ornamentSlot: {
     position: "absolute",
-    top: 0,
+    top: 14,
     left: 0,
     right: 0,
-    bottom: 0,
+    bottom: 4,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -106,7 +144,7 @@ const styles = StyleSheet.create({
   },
   lowerChamfer: {
     position: "absolute",
-    bottom: 5,
+    bottom: 3,
     left: 0,
     right: 0,
     height: 1,
