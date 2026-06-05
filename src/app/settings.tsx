@@ -103,7 +103,6 @@ export default function SettingsScreen() {
           style={[styles.btn, { borderColor: theme.colors.accentSoft }]}
         >
           <Text style={[styles.btnLabel, { color: theme.colors.textBody }]}>View title page</Text>
-          <Text style={[styles.btnSub, { color: theme.colors.textMuted }]}>Sit with the splash art for a moment.</Text>
         </Pressable>
         <Text style={[styles.wordmark, { color: theme.colors.textPrimary }]}>
           Parchment
