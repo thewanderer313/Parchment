@@ -71,7 +71,20 @@ export default function StudyTab() {
       <PaperBackground seed={0x5e30af} />
       <View style={styles.header}>
         <View style={styles.titleColumn}>
-          <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Study</Text>
+          {/* Title is the mode switch — tap to flip from Study to
+              Library. The Tabs navigator handles the route swap;
+              both tab screens stay mounted so the swap is instant. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Switch to Library"
+            onPress={() => router.push("/library" as never)}
+            style={({ pressed }) => [styles.titlePress, pressed && { opacity: 0.6 }]}
+          >
+            <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Study</Text>
+            <Text style={[styles.titleSwitch, { color: theme.colors.textMuted }]}>
+              → Library
+            </Text>
+          </Pressable>
           <View style={styles.ornamentWrap}>
             <Ornament width={84} />
           </View>
@@ -191,11 +204,25 @@ const styles = StyleSheet.create({
     paddingBottom: 22,
   },
   titleColumn: { alignItems: "flex-start" },
+  // Pressable wrapping the title — alignItems: flex-start so the
+  // "→ Library" hint sits left-aligned under the big STUDY rather
+  // than centering against the Pressable's intrinsic width.
+  titlePress: { alignItems: "flex-start" },
   title: {
     fontFamily: FONT_OLDBOOK,
     fontSize: 36,
     letterSpacing: 2.5,
     textTransform: "uppercase",
+  },
+  // Tiny italic "→ Library" / "→ Study" sits below the big title,
+  // signalling the title is the mode switch. Discoverable affordance
+  // without taking up extra real estate or competing with the title
+  // typography.
+  titleSwitch: {
+    fontFamily: FONT_DISPLAY_ITALIC,
+    fontSize: 12,
+    marginTop: 2,
+    letterSpacing: 0.5,
   },
   ornamentWrap: { marginTop: 2, marginBottom: 8, alignSelf: "stretch", alignItems: "flex-start" },
   subtitle: {

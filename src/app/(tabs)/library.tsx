@@ -99,7 +99,19 @@ export default function LibraryTab() {
       <PaperBackground seed={0x1a7b3e} />
       <View style={styles.header}>
         <View style={styles.titleColumn}>
-          <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Library</Text>
+          {/* Title is the mode switch — tap to flip from Library to
+              Study. See _layout.tsx for why the tab bar is hidden. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Switch to Study"
+            onPress={() => router.push("/" as never)}
+            style={({ pressed }) => [styles.titlePress, pressed && { opacity: 0.6 }]}
+          >
+            <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Library</Text>
+            <Text style={[styles.titleSwitch, { color: theme.colors.textMuted }]}>
+              → Study
+            </Text>
+          </Pressable>
           <View style={styles.ornamentWrap}>
             <Ornament width={96} />
           </View>
@@ -193,11 +205,21 @@ const styles = StyleSheet.create({
     paddingBottom: 22,
   },
   titleColumn: { alignItems: "flex-start", flexShrink: 1 },
+  // Pressable wrapping the title; left-aligned so the "→ Study"
+  // hint sits under the big LIBRARY.
+  titlePress: { alignItems: "flex-start" },
   title: {
     fontFamily: FONT_OLDBOOK,
     fontSize: 36,
     letterSpacing: 2.5,
     textTransform: "uppercase",
+  },
+  // Tiny italic mode-switch hint under the big title.
+  titleSwitch: {
+    fontFamily: FONT_DISPLAY_ITALIC,
+    fontSize: 12,
+    marginTop: 2,
+    letterSpacing: 0.5,
   },
   ornamentWrap: { marginTop: 2, marginBottom: 8, alignSelf: "stretch", alignItems: "flex-start" },
   subtitle: {
