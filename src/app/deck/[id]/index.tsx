@@ -304,6 +304,12 @@ export default function DeckDetailScreen() {
               contentContainerStyle={styles.list}
               ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
               keyboardShouldPersistTaps="handled"
+              // Spacer at the end so the last card scrolls fully into
+              // view, clear of Android's gesture-nav bar / iOS home
+              // indicator. contentContainerStyle paddingBottom alone
+              // wasn't being honored reliably by DraggableFlatList,
+              // and we want the two list variants to behave the same.
+              ListFooterComponent={<View style={{ height: 140 }} />}
               renderItem={({ item }) => (
                 <CardRow
                   card={item}
@@ -321,6 +327,10 @@ export default function DeckDetailScreen() {
               keyExtractor={(c) => c.id}
               contentContainerStyle={styles.list}
               ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+              // See the FlatList branch above — same reason; the
+              // footer spacer is what actually extends the scroll
+              // range past the last card.
+              ListFooterComponent={<View style={{ height: 140 }} />}
               onDragEnd={({ data }) => {
                 const before = cards.map((c) => c.id).join("|");
                 const after = data.map((c) => c.id).join("|");
@@ -385,11 +395,13 @@ const styles = StyleSheet.create({
   btnPrimaryLabel: { fontFamily: FONT_SERIF, fontSize: 14, fontWeight: "600" },
   btnGhost: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 999, borderWidth: 1 },
   btnGhostLabel: { fontFamily: FONT_SERIF, fontSize: 14, fontWeight: "600" },
-  // Generous bottom padding so the last card has breathing room above
-  // the system gesture / navigation bar on Android, and clears the
-  // home indicator on iOS — 20 was too tight, causing the last row
-  // to sit flush against the bottom edge or get partially obscured.
-  list: { paddingHorizontal: 20, paddingBottom: 80 },
+  // Horizontal padding only — vertical bottom space is provided by
+  // the lists' ListFooterComponent spacers (an empty 140 px View)
+  // because DraggableFlatList doesn't reliably honor contentContainer
+  // paddingBottom for purposes of scroll-range extension. With the
+  // footer in place the last row scrolls fully past Android's gesture-
+  // nav bar / iOS home indicator.
+  list: { paddingHorizontal: 20 },
   empty: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 6 },
   emptyIlloWrap: { marginBottom: 12 },
   emptyHeadline: { fontFamily: FONT_DISPLAY, fontSize: 22 },
