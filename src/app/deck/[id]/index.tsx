@@ -377,7 +377,11 @@ const styles = StyleSheet.create({
   btnPrimaryLabel: { fontFamily: FONT_SERIF, fontSize: 14, fontWeight: "600" },
   btnGhost: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 999, borderWidth: 1 },
   btnGhostLabel: { fontFamily: FONT_SERIF, fontSize: 14, fontWeight: "600" },
-  list: { paddingHorizontal: 20, paddingBottom: 20 },
+  // Generous bottom padding so the last card has breathing room above
+  // the system gesture / navigation bar on Android, and clears the
+  // home indicator on iOS — 20 was too tight, causing the last row
+  // to sit flush against the bottom edge or get partially obscured.
+  list: { paddingHorizontal: 20, paddingBottom: 80 },
   empty: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 6 },
   emptyIlloWrap: { marginBottom: 12 },
   emptyHeadline: { fontFamily: FONT_DISPLAY, fontSize: 22 },
