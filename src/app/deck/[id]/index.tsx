@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, Pressable, StyleSheet, Alert, TextInput, FlatList } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import DraggableFlatList, {
   type RenderItemParams,
   ScaleDecorator,
@@ -32,6 +32,13 @@ export default function DeckDetailScreen() {
   const deck = useDecksStore((s) => s.decks.find((d) => d.id === id));
   const cards = useCardsStore((s) => s.cardsByDeck[id ?? ""] ?? EMPTY_CARDS);
   const loadByDeck = useCardsStore((s) => s.loadByDeck);
+  // Bottom safe-area inset read directly so we can guarantee the
+  // list's last row clears Samsung's 3-button nav / gesture pill on
+  // edge-to-edge displays where SafeAreaView's reported inset is
+  // sometimes a tiny pill height while the actual nav-bar tap zone
+  // extends much higher. We add a fixed minimum buffer regardless.
+  const insets = useSafeAreaInsets();
+  const bottomGap = Math.max(insets.bottom, 0) + 80;
   const [deckMenuVisible, setDeckMenuVisible] = useState(false);
   const [cardMenu, setCardMenu] = useState<Card | null>(null);
   // The "Move to another deck" picker — when non-null, an ActionSheet
@@ -202,7 +209,17 @@ export default function DeckDetailScreen() {
     : [];
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: theme.colors.bgApp }]} edges={["bottom", "left", "right"]}>
+    <SafeAreaView
+      // We drop "bottom" from edges and apply our own paddingBottom
+      // (insets.bottom + 80) so the list's content area always ends
+      // well above whatever system chrome Android draws at the
+      // bottom — fixed minimum buffer regardless of how small the
+      // OS-reported inset comes back. The 80 px is generous enough
+      // to clear Samsung 3-button nav, iPhone home indicator, and
+      // gesture pills, with breathing room.
+      style={[styles.root, { backgroundColor: theme.colors.bgApp, paddingBottom: bottomGap }]}
+      edges={["left", "right"]}
+    >
       <Stack.Screen options={{ title: deck.name }} />
       <PaperBackground seed={0xc1a9d2} />
       <View style={styles.header}>
