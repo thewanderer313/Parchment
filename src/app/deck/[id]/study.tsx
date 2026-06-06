@@ -215,26 +215,34 @@ export default function StudyScreen() {
               <View style={styles.faceInner}>
                 <Text style={[styles.hint, { color: theme.colors.textMuted }]}>FRONT</Text>
                 {current.frontImages[0] && (
-                  <Image
-                    source={{ uri: current.frontImages[0] }}
-                    style={[styles.cardImage, { borderColor: theme.colors.accentSoft }]}
-                    contentFit="contain"
-                  />
+                  <View style={[styles.imageFrame, { borderColor: theme.colors.accentSoft }]}>
+                    <Image
+                      source={{ uri: current.frontImages[0] }}
+                      style={styles.cardImage}
+                      contentFit="contain"
+                    />
+                  </View>
                 )}
-                <MarkdownText>{current.frontText}</MarkdownText>
+                <View style={styles.textWrap}>
+                  <MarkdownText centered>{current.frontText}</MarkdownText>
+                </View>
               </View>
             }
             back={
               <View style={styles.faceInner}>
                 <Text style={[styles.hint, { color: theme.colors.textMuted }]}>BACK</Text>
                 {current.backImages[0] && (
-                  <Image
-                    source={{ uri: current.backImages[0] }}
-                    style={[styles.cardImage, { borderColor: theme.colors.accentSoft }]}
-                    contentFit="contain"
-                  />
+                  <View style={[styles.imageFrame, { borderColor: theme.colors.accentSoft }]}>
+                    <Image
+                      source={{ uri: current.backImages[0] }}
+                      style={styles.cardImage}
+                      contentFit="contain"
+                    />
+                  </View>
                 )}
-                <MarkdownText>{current.backText}</MarkdownText>
+                <View style={styles.textWrap}>
+                  <MarkdownText centered>{current.backText}</MarkdownText>
+                </View>
               </View>
             }
           />
@@ -312,17 +320,39 @@ const styles = StyleSheet.create({
   titleDeck: { fontFamily: FONT_DISPLAY_ITALIC, fontSize: 13 },
   titleCount: { fontFamily: FONT_DISPLAY, fontSize: 15 },
   cardArea: { flex: 1, padding: 16 },
-  faceInner: { gap: 14, alignItems: "center" },
+  // Trading-card layout: face content is vertically AND horizontally
+  // centred so the (hint + image + text) column sits in the middle of
+  // the card. Generous vertical padding means the column doesn't
+  // crowd the top/bottom edges; flex: 1 makes faceInner fill the
+  // FlipCard's content slot so centring is meaningful.
+  faceInner: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
   hint: { fontFamily: FONT_DISPLAY, fontSize: 10, letterSpacing: 3, textTransform: "uppercase" },
-  // Card image sits between the FRONT / BACK hint and the markdown
-  // text. resizeMode="contain" preserves aspect ratio; the hairline
-  // border + rounded corners give it the same manuscript-folio
-  // framing the card editor preview uses.
-  cardImage: {
-    width: "92%",
-    aspectRatio: 16 / 10,
+  // Manuscript-folio frame around the image — fixed height (220 px)
+  // so the image takes a predictable amount of the card regardless of
+  // intrinsic dimensions, leaving room for the centred text beneath.
+  // contentFit="contain" on the Image inside preserves source aspect
+  // ratio with letterboxing if the source doesn't match the frame.
+  imageFrame: {
+    width: "86%",
+    height: 220,
     borderRadius: 8,
     borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+  },
+  cardImage: { width: "100%", height: "100%" },
+  // Text container under the image — full row width minus a small
+  // horizontal inset, so multi-line text wraps to a comfortable
+  // reading measure while staying centred on the card.
+  textWrap: {
+    width: "92%",
+    alignItems: "center",
   },
   bottomBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 14 },
   navBtn: { padding: 8 },
