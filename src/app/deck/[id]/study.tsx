@@ -42,9 +42,15 @@ export default function StudyScreen() {
   // resurface the same intent on a session where the user expected
   // the default starting card. Using state so the value is stable
   // across renders for the positioning effect.
-  const [startCardId] = useState<string | undefined>(() =>
-    id ? useNavIntentStore.getState().consumeStudyStart(id) : undefined
-  );
+  const [startCardId] = useState<string | undefined>(() => {
+    console.log("[Study] useState init", {
+      id,
+      storeBeforeConsume: useNavIntentStore.getState().studyStartCardId,
+    });
+    const consumed = id ? useNavIntentStore.getState().consumeStudyStart(id) : undefined;
+    console.log("[Study] consumed", { id, consumed, storeAfter: useNavIntentStore.getState().studyStartCardId });
+    return consumed;
+  });
   const deck = useDecksStore((s) => s.decks.find((d) => d.id === id));
   // Use a stable empty-array reference to avoid re-deriving orderedCards on
   // every render when the deck has no loaded entry yet.
@@ -96,12 +102,19 @@ export default function StudyScreen() {
   // orderedCards, we honor startCardId (or fall back to 0) and flip
   // initialJumped so subsequent refreshes don't touch the index.
   useEffect(() => {
+    console.log("[Study] positioning effect", {
+      initialJumped: initialJumped.current,
+      orderedCardsLen: orderedCards.length,
+      startCardId,
+    });
     if (initialJumped.current) return;
     if (orderedCards.length === 0) return;
     if (startCardId) {
       const i = orderedCards.findIndex((c) => c.id === startCardId);
+      console.log("[Study] jumping to startCardId", { startCardId, foundIndex: i });
       setIndex(i >= 0 ? i : 0);
     } else {
+      console.log("[Study] no startCardId, defaulting to index 0");
       setIndex(0);
     }
     setFlipped(false);
