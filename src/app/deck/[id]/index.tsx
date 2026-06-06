@@ -167,9 +167,7 @@ export default function DeckDetailScreen() {
           // consumes it on mount.
           onPress: () => {
             const cardId = cardMenu.id;
-            console.log("[StudyFromCard] writing intent", { deckId: deck.id, cardId });
             useNavIntentStore.getState().setStudyStart(deck.id, cardId);
-            console.log("[StudyFromCard] store after write", useNavIntentStore.getState().studyStartCardId);
             router.push({
               pathname: "/deck/[id]/study",
               params: { id: deck.id },

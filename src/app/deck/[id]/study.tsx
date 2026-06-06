@@ -42,15 +42,9 @@ export default function StudyScreen() {
   // resurface the same intent on a session where the user expected
   // the default starting card. Using state so the value is stable
   // across renders for the positioning effect.
-  const [startCardId] = useState<string | undefined>(() => {
-    console.log("[Study] useState init", {
-      id,
-      storeBeforeConsume: useNavIntentStore.getState().studyStartCardId,
-    });
-    const consumed = id ? useNavIntentStore.getState().consumeStudyStart(id) : undefined;
-    console.log("[Study] consumed", { id, consumed, storeAfter: useNavIntentStore.getState().studyStartCardId });
-    return consumed;
-  });
+  const [startCardId] = useState<string | undefined>(() =>
+    id ? useNavIntentStore.getState().consumeStudyStart(id) : undefined
+  );
   const deck = useDecksStore((s) => s.decks.find((d) => d.id === id));
   // Use a stable empty-array reference to avoid re-deriving orderedCards on
   // every render when the deck has no loaded entry yet.
@@ -102,19 +96,12 @@ export default function StudyScreen() {
   // orderedCards, we honor startCardId (or fall back to 0) and flip
   // initialJumped so subsequent refreshes don't touch the index.
   useEffect(() => {
-    console.log("[Study] positioning effect", {
-      initialJumped: initialJumped.current,
-      orderedCardsLen: orderedCards.length,
-      startCardId,
-    });
     if (initialJumped.current) return;
     if (orderedCards.length === 0) return;
     if (startCardId) {
       const i = orderedCards.findIndex((c) => c.id === startCardId);
-      console.log("[Study] jumping to startCardId", { startCardId, foundIndex: i });
       setIndex(i >= 0 ? i : 0);
     } else {
-      console.log("[Study] no startCardId, defaulting to index 0");
       setIndex(0);
     }
     setFlipped(false);
@@ -123,10 +110,26 @@ export default function StudyScreen() {
 
   // Toggling shuffle mid-session reshuffles orderedCards; jump back
   // to the start of the new order so the position counter ("Card N of
-  // M") is meaningful. Gated on initialJumped so this doesn't double-
-  // fire alongside the positioning effect on the very first mount.
+  // M") is meaningful.
+  //
+  // CRITICAL — Why the gate uses its own ref, not initialJumped: the
+  // positioning effect is declared above this one, so on first mount
+  // it runs FIRST and sets initialJumped.current = true. By the time
+  // THIS effect runs (on first mount), initialJumped is already true,
+  // and the old `if (!initialJumped) return` gate INVERTS — letting
+  // the effect fire and immediately setIndex(0), clobbering whatever
+  // card the positioning effect just jumped to. (User-visible bug:
+  // "Study from this card" always landed on card 0 because of this.)
+  //
+  // The fix is a per-effect "is this run the initial mount?" ref —
+  // independent of initialJumped — so the gate has the same meaning
+  // regardless of what other effects on this mount happen to do.
+  const shuffleEffectInitial = useRef(true);
   useEffect(() => {
-    if (!initialJumped.current) return;
+    if (shuffleEffectInitial.current) {
+      shuffleEffectInitial.current = false;
+      return;
+    }
     setIndex(0);
     setFlipped(false);
   }, [shuffle]);
