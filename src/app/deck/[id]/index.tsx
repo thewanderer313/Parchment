@@ -8,6 +8,7 @@ import DraggableFlatList, {
 import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 import { useDecksStore } from "@/store/decksStore";
 import { useCardsStore } from "@/store/cardsStore";
+import { useNavIntentStore } from "@/store/navIntentStore";
 import { useTheme } from "@/theme/ThemeProvider";
 import { FONT_SERIF, FONT_DISPLAY, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
 import { Ornament } from "@/components/Ornament";
@@ -150,18 +151,20 @@ export default function DeckDetailScreen() {
     ? [
         {
           label: "Study from this card",
-          // URL-string form rather than the params object: with
-          // typedRoutes on, the path's typed signature doesn't list
-          // `startCardId`, and the `as never` cast that satisfied
-          // TypeScript also let the runtime dispatch silently strip
-          // the extra param. A raw URL keeps the query-string intact
-          // end to end so useLocalSearchParams on the Study screen
-          // can actually read startCardId.
+          // The URL-query approach for startCardId went through TWO
+          // forms (params object + raw URL string) and both were
+          // silently stripped by expo-router's typedRoutes dispatch
+          // — useLocalSearchParams on the receiving Study screen
+          // never saw the value. Sidestep routing entirely: write
+          // the intent into navIntentStore here, Study reads and
+          // consumes it on mount.
           onPress: () => {
             const cardId = cardMenu.id;
-            router.push(
-              `/deck/${deck.id}/study?startCardId=${encodeURIComponent(cardId)}` as never
-            );
+            useNavIntentStore.getState().setStudyStart(deck.id, cardId);
+            router.push({
+              pathname: "/deck/[id]/study",
+              params: { id: deck.id },
+            } as never);
           },
         },
         {

@@ -9,6 +9,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS, Easing
 import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 import { useDecksStore } from "@/store/decksStore";
 import { useCardsStore } from "@/store/cardsStore";
+import { useNavIntentStore } from "@/store/navIntentStore";
 import { useTheme } from "@/theme/ThemeProvider";
 import { FONT_SERIF, FONT_DISPLAY, FONT_DISPLAY_ITALIC } from "@/theme/fonts";
 import { FlipCard } from "@/components/FlipCard";
@@ -32,7 +33,18 @@ const EMPTY_CARDS: never[] = [];
 export default function StudyScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { id, startCardId } = useLocalSearchParams<{ id: string; startCardId?: string }>();
+  // URL no longer carries startCardId — it's read from the in-memory
+  // nav intent store written by Deck Detail's "Study from this card"
+  // menu. See navIntentStore for why we don't trust the URL for this.
+  const { id } = useLocalSearchParams<{ id: string }>();
+  // Capture once on mount via useRef + useState combo: consume the
+  // intent immediately so a back-then-forward navigation doesn't
+  // resurface the same intent on a session where the user expected
+  // the default starting card. Using state so the value is stable
+  // across renders for the positioning effect.
+  const [startCardId] = useState<string | undefined>(() =>
+    id ? useNavIntentStore.getState().consumeStudyStart(id) : undefined
+  );
   const deck = useDecksStore((s) => s.decks.find((d) => d.id === id));
   // Use a stable empty-array reference to avoid re-deriving orderedCards on
   // every render when the deck has no loaded entry yet.
