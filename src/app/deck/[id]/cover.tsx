@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -10,8 +10,10 @@ import {
 // expo-image so a GIF deck cover animates cross-platform.
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { GestureDetector, Gesture } from "react-native-gesture-handler";
 import Animated, {
   Easing,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -41,14 +43,41 @@ import { ShuffleIcon } from "@/components/ShuffleIcon";
 export default function CoverScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const deck = useDecksStore((s) => s.decks.find((d) => d.id === id));
-  const count = useCardsStore((s) => (id ? s.counts[id] ?? 0 : 0));
-  const { height } = useWindowDimensions();
+  const { id: initialId } = useLocalSearchParams<{ id: string }>();
+  // Whole deck list, so the cover can carousel between adjacent
+  // titles via swipe. Ordered the same way the bookshelf packs them.
+  const decks = useDecksStore((s) => s.decks);
+  const counts = useCardsStore((s) => s.counts);
+  const { width, height } = useWindowDimensions();
+
+  // Where the user came in from — find that deck's position in the
+  // ordered list so we can carousel from it. Re-deriving via useMemo
+  // means if the user backs out and re-enters with a different id,
+  // the start position updates.
+  const initialIndex = useMemo(() => {
+    const i = decks.findIndex((d) => d.id === initialId);
+    return Math.max(0, i);
+  }, [decks, initialId]);
+
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  // Re-sync on deck list churn (e.g., user deleted a deck while on
+  // this screen — fall back to clamped index, not stale state).
+  useEffect(() => {
+    setCurrentIndex((prev) => Math.min(Math.max(0, prev), decks.length - 1));
+  }, [decks.length]);
+
+  const deck = decks[currentIndex];
+  const count = deck ? counts[deck.id] ?? 0 : 0;
 
   // Entrance animation — fade + rise + slight scale. Mimics a page
   // being lifted from below as if the user is opening the book.
   const progress = useSharedValue(0);
+  // Horizontal carousel slide — driven by the Pan gesture's onEnd
+  // worklet (next/prev deck). Stays separate from progress so the
+  // entrance fade isn't disturbed by mid-session swipes.
+  const carouselX = useSharedValue(0);
+  const animating = useSharedValue(0);
+
   useEffect(() => {
     progress.value = withTiming(1, {
       duration: 420,
@@ -60,6 +89,7 @@ export default function CoverScreen() {
     opacity: progress.value,
     transform: [
       { translateY: 24 * (1 - progress.value) },
+      { translateX: carouselX.value },
       { scale: 0.96 + 0.04 * progress.value },
     ],
   }));
@@ -90,6 +120,52 @@ export default function CoverScreen() {
     } as never);
   };
 
+  // Carousel navigation. Slide the current cover off in the direction
+  // of the swipe, swap currentIndex (which re-derives `deck`), then
+  // slide the new cover in from the opposite side. The animating
+  // shared value gates re-entry so a rapid second swipe doesn't pile
+  // up animations.
+  const goTo = (nextIndex: number) => {
+    if (nextIndex < 0 || nextIndex >= decks.length) return;
+    if (animating.value === 1) return;
+    animating.value = 1;
+    const dir = nextIndex > currentIndex ? -1 : 1;
+    const dur = 220;
+    carouselX.value = withTiming(
+      dir * width,
+      { duration: dur, easing: Easing.in(Easing.cubic) },
+      () => {
+        runOnJS(setCurrentIndex)(nextIndex);
+        carouselX.value = -dir * width;
+        carouselX.value = withTiming(
+          0,
+          { duration: dur, easing: Easing.out(Easing.cubic) },
+          () => {
+            animating.value = 0;
+          }
+        );
+      }
+    );
+  };
+
+  // Pan: sideways swipe → carousel. Activate only after 16 px of
+  // horizontal travel so a tap (no movement) doesn't race the pan.
+  const pan = Gesture.Pan()
+    .activeOffsetX([-16, 16])
+    .onEnd((e) => {
+      "worklet";
+      if (e.translationX < -60) runOnJS(goTo)(currentIndex + 1);
+      else if (e.translationX > 60) runOnJS(goTo)(currentIndex - 1);
+    });
+  // Tap: open the currently displayed deck for reading.
+  const tap = Gesture.Tap().onEnd(() => {
+    "worklet";
+    if (count > 0) runOnJS(beginStudy)();
+  });
+  // Race so a finger that taps without moving fires tap; one that
+  // moves sideways enough wins as a pan.
+  const coverGesture = Gesture.Race(tap, pan);
+
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: theme.colors.bgApp }]} edges={["top", "left", "right", "bottom"]}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -107,33 +183,33 @@ export default function CoverScreen() {
         </Pressable>
       </View>
 
-      <Animated.View style={[{ flex: 1 }, enterStyle]}>
+      <View style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={[styles.scroll, { minHeight: height - 160 }]}
           showsVerticalScrollIndicator={false}
         >
-          {/* The cover frame IS the book cover AND the action target —
-              tap anywhere on it to open the deck for reading. If the
-              deck has a cover image, it fills the entire frame and the
-              title sits in a translucent parchment cartouche near the
-              bottom. If not, the frame becomes a typographic cover —
-              emoji, title, and ornament centered on bgCard. Empty deck
-              → frame is disabled and fades out, matching the "(empty)"
-              line below it. */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Open ${deck.name} for reading`}
-            onPress={beginStudy}
-            disabled={count === 0}
-            style={({ pressed }) => [
-              styles.coverFrame,
-              {
-                borderColor: theme.colors.accentSoft,
-                backgroundColor: theme.colors.bgCard,
-                opacity: count === 0 ? 0.4 : pressed ? 0.88 : 1,
-              },
-            ]}
-          >
+          {/* The cover frame is the book AND the gesture target.
+              Tap → open the displayed deck for reading. Swipe
+              sideways → carousel to the previous / next deck on the
+              bookshelf. If the deck has a cover image, it fills the
+              entire frame and the title sits in a translucent
+              parchment cartouche near the bottom. If not, the frame
+              becomes a typographic cover — emoji, title, and ornament
+              centered on bgCard. */}
+          <GestureDetector gesture={coverGesture}>
+            <Animated.View
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${deck.name} for reading. Swipe to browse other books.`}
+              style={[
+                styles.coverFrame,
+                enterStyle,
+                {
+                  borderColor: theme.colors.accentSoft,
+                  backgroundColor: theme.colors.bgCard,
+                  opacity: count === 0 ? 0.4 : 1,
+                },
+              ]}
+            >
             {hasCover ? (
               <>
                 <Image
@@ -219,7 +295,8 @@ export default function CoverScreen() {
                 </View>
               </View>
             )}
-          </Pressable>
+            </Animated.View>
+          </GestureDetector>
 
           {/* Description and card count sit BELOW the cover, like
               jacket flap copy. Description gets the italic Garamond
@@ -233,8 +310,18 @@ export default function CoverScreen() {
           <Text style={[styles.count, { color: theme.colors.textMuted }]}>
             {count === 0 ? "empty" : count === 1 ? "1 card" : `${count} cards`}
           </Text>
+
+          {/* Carousel position hint — small italic "n of N" so users
+              know there are other books to swipe through. Only shown
+              when there are multiple decks (single deck = nothing to
+              carousel). */}
+          {decks.length > 1 && (
+            <Text style={[styles.carouselPos, { color: theme.colors.textMuted }]}>
+              {currentIndex + 1} of {decks.length}  ·  swipe to browse
+            </Text>
+          )}
         </ScrollView>
-      </Animated.View>
+      </View>
 
       <View style={styles.footer}>
         <Pressable
@@ -363,6 +450,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 10,
     letterSpacing: 0.5,
+  },
+  carouselPos: {
+    fontFamily: FONT_DISPLAY_ITALIC,
+    fontSize: 12,
+    marginTop: 18,
+    letterSpacing: 0.5,
+    opacity: 0.75,
   },
   footer: {
     flexDirection: "row",

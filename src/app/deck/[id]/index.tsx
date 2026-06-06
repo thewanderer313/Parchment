@@ -150,11 +150,19 @@ export default function DeckDetailScreen() {
     ? [
         {
           label: "Study from this card",
-          onPress: () =>
-            router.push({
-              pathname: "/deck/[id]/study",
-              params: { id: deck.id, startCardId: cardMenu.id },
-            } as never),
+          // URL-string form rather than the params object: with
+          // typedRoutes on, the path's typed signature doesn't list
+          // `startCardId`, and the `as never` cast that satisfied
+          // TypeScript also let the runtime dispatch silently strip
+          // the extra param. A raw URL keeps the query-string intact
+          // end to end so useLocalSearchParams on the Study screen
+          // can actually read startCardId.
+          onPress: () => {
+            const cardId = cardMenu.id;
+            router.push(
+              `/deck/${deck.id}/study?startCardId=${encodeURIComponent(cardId)}` as never
+            );
+          },
         },
         {
           label: "Move to another deck…",
