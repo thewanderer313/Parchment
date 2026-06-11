@@ -1,56 +1,99 @@
-# Welcome to your Expo app 👋
+# Parchment
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A calm, account-free flashcard app for iOS and Android. Open it, swipe through cards, learn. No accounts, no notifications, no streaks. Nothing nags.
 
-## Get started
+Parchment is local-first: your decks live on your device, and you own the file. Share a single deck or your whole library as a self-contained `.parchment` file via Messages, email, AirDrop, Drive, or anything else the OS share sheet supports.
 
-1. Install dependencies
+## Highlights
 
-   ```bash
-   npm install
-   ```
+- **Forest on Parchment aesthetic** — warm parchment backgrounds, rich forest-green accents, a serif body face, and a companion dark palette for late-night study.
+- **Markdown cards with live preview** — split-screen editor with a format toolbar so users who don't know Markdown can still write formatted text.
+- **Optional image per side** — downscaled and re-encoded locally; cover images for decks too.
+- **Quiet study mode** — tap to flip with a 380 ms 3D rotation; swipe between cards with a low-tension spring. No timer, no streak, no scoring.
+- **Per-deck shuffle** — preference persists per deck.
+- **Backup, restore, share** — export your whole library or share a single deck as a `.parchment` file (UTF-8 JSON with inlined base64 images). Recipient taps the file → Parchment opens → "Import this deck?".
+- **Reduce Motion aware** — flips collapse to cross-fades and screen transitions become near-instant when the OS setting is on.
+- **No haptics, no notifications, no sounds. Ever.**
 
-2. Start the app
+## Tech stack
 
-   ```bash
-   npx expo start
-   ```
+| Concern | Choice |
+|---|---|
+| Framework | Expo SDK 56 + React Native 0.85 |
+| Language | TypeScript |
+| Navigation | `expo-router` (file-based, typed routes) |
+| Animations | `react-native-reanimated` v4 + `react-native-gesture-handler` |
+| Storage | `expo-sqlite` |
+| Files & images | `expo-file-system`, `expo-image-picker`, `expo-image` |
+| Sharing | `expo-sharing` + `expo-document-picker` |
+| Markdown | `react-native-marked` |
+| State | `zustand` (SQLite-backed hydration) |
+| Testing | Jest + `@testing-library/react-native` |
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Getting started
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Open the dev menu in Expo Go (or a custom dev client) to launch on iOS or Android.
 
-### Other setup steps
+A custom dev client is required because Parchment uses native modules (SQLite, sharing, image picker). The first install needs a one-time build:
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+```bash
+eas build --profile development --platform android   # or --platform ios
+```
 
-## Learn more
+Subsequent code changes hot-reload over the dev client without rebuilding.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Scripts
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npm run start      # expo start
+npm run android    # expo start --android
+npm run ios        # expo start --ios
+npm run web        # expo start --web
+npm run lint       # expo lint
+npm test           # jest
+npm run test:watch # jest --watch
+```
 
-## Join the community
+## Building releases
 
-Join our community of developers creating universal apps.
+Parchment ships through [EAS Build](https://docs.expo.dev/eas/).
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+eas build --profile preview    --platform android   # .apk for testers
+eas build --profile production --platform android   # .aab for Google Play
+eas build --profile production --platform ios       # .ipa for App Store
+eas submit                                          # upload to the store
+```
+
+## Project structure
+
+```
+parchment/
+├── src/
+│   ├── app/                  # expo-router screens (tabs, deck, card editor, study, settings)
+│   ├── db/                   # schema, migrations, queries (expo-sqlite)
+│   ├── store/                # zustand stores (decks, cards, settings)
+│   ├── components/           # CardFace, DeckTile, MarkdownEditor, FlipCard, …
+│   ├── theme/                # tokens, light + dark palettes, ThemeProvider
+│   ├── animations/           # flip, swipe, transition helpers
+│   └── lib/                  # export, import, share, image utilities
+├── assets/                   # fonts, app icon, splash
+├── docs/                     # design spec and implementation plans
+├── app.json                  # Expo config
+└── package.json
+```
+
+## Data model
+
+Decks and cards live in SQLite; images live as JPEGs in `documents/images/` and the DB stores their relative paths. `front_images` and `back_images` are JSON arrays from day one so future versions can carry multiple images without a schema migration.
+
+See [`docs/superpowers/specs/2026-06-02-parchment-flashcard-app-design.md`](docs/superpowers/specs/2026-06-02-parchment-flashcard-app-design.md) for the full design spec — palettes, motion timings, schema, and the `.parchment` file format.
+
+## License
+
+MIT.
