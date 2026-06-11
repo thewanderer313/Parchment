@@ -1,5 +1,9 @@
 # Parchment
 
+<p align="center">
+  <img src="assets/images/splashscreen.png" alt="Parchment splash screen" width="320">
+</p>
+
 A calm, account-free flashcard app for iOS and Android. Open it, swipe through cards, learn. No accounts, no notifications, no streaks. Nothing nags.
 
 Parchment is local-first: your decks live on your device, and you own the file. Share a single deck or your whole library as a self-contained `.parchment` file via Messages, email, AirDrop, Drive, or anything else the OS share sheet supports.
